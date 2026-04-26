@@ -4,6 +4,7 @@ import uuid
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
+from sse_starlette.sse import EventSourceResponse
 from supabase import create_client
 
 from agents.graph import build_graph
@@ -83,3 +84,20 @@ async def create_run(
     task.add_done_callback(_background_tasks.discard)
 
     return {"run_id": run_id}
+
+
+@router.get("/runs/{run_id}/stream")
+async def stream_run(
+    run_id: str,
+    user: dict = Depends(get_current_user),
+) -> EventSourceResponse:
+    supabase = create_client(settings.supabase_url, settings.supabase_service_key)
+    result = supabase.table("runs").select("id").eq("id", run_id).eq("user_id", user["sub"]).execute()
+    if not result.data:
+        raise HTTPException(status_code=404, detail="Run não encontrada")
+
+    async def event_generator():
+        async for event in emitter.listen(run_id):
+            yield {"event": event.type.value, "data": event.model_dump_json()}
+
+    return EventSourceResponse(event_generator())

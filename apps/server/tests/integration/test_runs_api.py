@@ -58,3 +58,36 @@ def test_post_runs_exige_autenticacao():
         json={"objective": "Construir um aplicativo de tarefas simples"},
     )
     assert response.status_code == 401
+
+
+def test_stream_run_retorna_200(client_autenticado):
+    from core.events import emitter as global_emitter
+
+    global_emitter.create("fake-run-id")
+    import asyncio
+
+    async def _close():
+        await global_emitter.close("fake-run-id")
+
+    asyncio.run(_close())
+
+    with patch("api.routes.runs.create_client") as mock_supabase:
+        mock_table = MagicMock()
+        mock_table.select.return_value.eq.return_value.eq.return_value.execute.return_value = MagicMock(data=[{"id": "fake-run-id"}])
+        mock_supabase.return_value.table.return_value = mock_table
+
+        response = client_autenticado.get("/api/v1/runs/fake-run-id/stream")
+
+    assert response.status_code == 200
+    assert "text/event-stream" in response.headers.get("content-type", "")
+
+
+def test_stream_run_retorna_404_para_run_nao_pertencente(client_autenticado):
+    with patch("api.routes.runs.create_client") as mock_supabase:
+        mock_table = MagicMock()
+        mock_table.select.return_value.eq.return_value.eq.return_value.execute.return_value = MagicMock(data=[])
+        mock_supabase.return_value.table.return_value = mock_table
+
+        response = client_autenticado.get("/api/v1/runs/non-existent-run-id/stream")
+
+    assert response.status_code == 404

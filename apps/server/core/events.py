@@ -36,7 +36,7 @@ class RunEventEmitter:
             await q.put(event)
 
     async def close(self, run_id: str) -> None:
-        q = self._queues.get(run_id)
+        q = self._queues.pop(run_id, None)
         if q:
             await q.put(None)
 
@@ -50,7 +50,7 @@ class RunEventEmitter:
             if event is None:
                 break
             yield event
-        del self._queues[run_id]
+        self._queues.pop(run_id, None)
 
 
 emitter = RunEventEmitter()

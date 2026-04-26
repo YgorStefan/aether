@@ -35,8 +35,14 @@ async def test_supervisor_decompoe_objetivo():
     assert result["total_output_tokens"] == 50
 
     # Verify agent_started event was emitted
+    async def consume():
+        return [evt async for evt in e.listen("run-1")]
+
+    import asyncio
+    consumer = asyncio.create_task(consume())
+    await asyncio.sleep(0)  # deixa listen() capturar referência antes de close() remover
     await e.close("run-1")
-    events = [evt async for evt in e.listen("run-1")]
+    events = await consumer
     assert len(events) == 1
     assert events[0].type == EventType.agent_started
     assert events[0].payload == {"agent": "supervisor"}

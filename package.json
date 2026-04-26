@@ -1,0 +1,13 @@
+{
+  "name": "aether-os",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently \"pnpm --filter web dev\" \"cd apps/server && uvicorn api.main:app --reload --port 8000\"",
+    "build": "pnpm --filter web build",
+    "lint": "pnpm --filter web lint",
+    "test": "pnpm --filter web test && cd apps/server && pytest"
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.0"
+  }
+}

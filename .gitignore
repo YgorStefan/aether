@@ -7,3 +7,5 @@ node_modules
 .env*.local
 apps/web/.env.local
 apps/server/.env
+**/__pycache__/
+**/*.pyc

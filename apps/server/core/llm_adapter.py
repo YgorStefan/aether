@@ -50,8 +50,11 @@ class GeminiAdapter(BaseLLMAdapter):
         response_model: type[BaseModel],
         state: AgentState,
     ) -> tuple[BaseModel, int, int]:
-        structured_llm = self._llm.with_structured_output(response_model)
-        result = await structured_llm.ainvoke(prompt)
-        input_tokens = max(len(prompt.split()) * 2, 10)
-        output_tokens = 100
-        return result, input_tokens, output_tokens
+        structured_llm = self._llm.with_structured_output(response_model, include_raw=True)
+        raw_result = await structured_llm.ainvoke(prompt)
+        parsed = raw_result["parsed"]
+        raw_msg = raw_result["raw"]
+        usage = getattr(raw_msg, "usage_metadata", None) or raw_msg.response_metadata.get("usage_metadata", {})
+        input_tokens = usage.get("input_tokens", 0)
+        output_tokens = usage.get("output_tokens", 0)
+        return parsed, input_tokens, output_tokens

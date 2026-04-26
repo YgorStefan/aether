@@ -1,3 +1,11 @@
 .planning/
 Ideia/
 .worktrees/
+node_modules
+.env
+.env.local
+.env*.local
+apps/web/.env.local
+apps/server/.env
+**/__pycache__/
+**/*.pyc

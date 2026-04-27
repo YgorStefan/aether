@@ -18,7 +18,7 @@
 
 ## 📖 Sobre o Projeto
 
-**Aether OS** é um sistema de Inteligência Artificial desenhado para lidar com objetivos complexos através de um orquestrador de múltiplos agentes. Quando o usuário define uma meta de alto nível, o Aether automaticamente instancia (*spawns*) uma rede de agentes especializados que colaboram, planejam, executam e validam tarefas de forma autônoma e orquestrada.
+**Aether** é um sistema de Inteligência Artificial desenhado para lidar com objetivos complexos através de um orquestrador de múltiplos agentes. Quando o usuário define uma meta de alto nível, o Aether automaticamente instancia (*spawns*) uma rede de agentes especializados que colaboram, planejam, executam e validam tarefas de forma autônoma e orquestrada.
 
 Ao invés de um simples chatbot, o Aether funciona como um verdadeiro "sistema operacional" de IA, com acesso a habilidades (Skills) dinâmicas e capacidade de processamento em background, comunicação via streaming em tempo real e interface otimista (Optimistic UI).
 
@@ -126,5 +126,5 @@ Este projeto é desenvolvido para uso publico e estudos avançados em Inteligên
 ---
 
 <div align="center">
-  <p>Feito com paixão e inteligência artificial. 🚀</p>
+  <p>Feito com ❤️ por Ygor Stefankowski da Silva. 🚀</p>
 </div>

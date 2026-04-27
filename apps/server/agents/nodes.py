@@ -53,10 +53,13 @@ async def finalize_node(
 ) -> dict:
     is_failed = state["status"] == "failed"
     event_type = EventType.run_failed if is_failed else EventType.run_completed
+    payload: dict = {"tasks_count": len(state["tasks"])}
+    if is_failed:
+        payload["error"] = state.get("error", "Erro desconhecido")
     await emitter.emit(RunEvent(
         run_id=state["run_id"],
         type=event_type,
-        payload={"tasks_count": len(state["tasks"])},
+        payload=payload,
     ))
     await emitter.close(state["run_id"])
     return {"status": "failed" if is_failed else "completed"}

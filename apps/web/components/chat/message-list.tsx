@@ -25,17 +25,17 @@ function eventToMarkdown(event: RunEvent): string {
     case 'task_started':
       return `Iniciando: ${p.task ?? ''}`
     case 'task_completed':
-      return `Tarefa concluída.\n\n${p.result ?? ''}`
+      return `Tarefa **${p.status === 'done' ? 'concluída' : 'falhou'}**: ${p.task ?? ''}`
     case 'skill_called':
-      return `Skill **${p.skill_name ?? ''}** chamada:\n\`\`\`json\n${JSON.stringify(p.params ?? {}, null, 2)}\n\`\`\``
+      return `Skill **${p.skill ?? ''}** chamada.`
     case 'hitl_required':
-      return `⚠️ Aguardando aprovação para: **${p.action ?? ''}**`
+      return `⚠️ Aguardando aprovação para: **${p.skill ?? ''}**`
     case 'run_completed':
-      return p.result ? String(p.result) : 'Concluído com sucesso.'
+      return 'Concluído com sucesso.'
     case 'run_failed':
       return `**Falha:** ${p.error ?? 'Erro desconhecido'}`
     case 'budget_warning':
-      return `Aviso de budget: ${p.tokens_used ?? 0} tokens de ${p.budget_limit ?? 0}.`
+      return `Aviso de budget: custo atual $${Number(p.cost_usd ?? 0).toFixed(4)}.`
     default:
       return JSON.stringify(p)
   }

@@ -46,7 +46,7 @@ async def test_supervisor_decompoe_objetivo():
     events = await consumer
     assert len(events) == 1
     assert events[0].type == EventType.agent_started
-    assert events[0].payload == {"agent": "supervisor"}
+    assert events[0].payload == {"agent_name": "supervisor"}
 
 
 @pytest.mark.asyncio

@@ -17,11 +17,8 @@ def build_graph(
     adapter: BaseLLMAdapter,
     budget: BudgetController,
     emitter: RunEventEmitter,
-    registry: SkillRegistry | None = None,
+    registry: SkillRegistry,
 ):
-    if registry is None:
-        registry = SkillRegistry()
-
     supervisor_fn = functools.partial(supervisor_node, adapter=adapter, emitter=emitter)
     budget_fn = functools.partial(budget_gate_node, budget=budget, emitter=emitter)
     worker_fn = functools.partial(worker_node, adapter=adapter, emitter=emitter, registry=registry)

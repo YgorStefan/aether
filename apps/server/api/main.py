@@ -10,7 +10,7 @@ from core.logging import configure_logging
 def create_app() -> FastAPI:
     configure_logging(settings.log_level)
 
-    app = FastAPI(title="Aether OS API", version="1.0.0")
+    app = FastAPI(title="Aether API", version="1.0.0")
     add_cors_middleware(app)
     add_rate_limit_middleware(app)
     app.include_router(health.router, prefix="/api/v1")

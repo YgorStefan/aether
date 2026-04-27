@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
+import Link from 'next/link'
 import { toast } from 'sonner'
 import { useRunStream } from '@/hooks/use-run-stream'
 import { MessageList } from '@/components/chat/message-list'
@@ -35,7 +36,13 @@ export function RunView({ runId, objective, initialStatus }: RunViewProps) {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-start gap-3">
+      <div className="flex items-center gap-3">
+        <Link
+          href="/dashboard"
+          className="text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-colors flex items-center gap-1"
+        >
+          ← Voltar
+        </Link>
         <h2 className="flex-1 text-sm text-[var(--color-text-secondary)] line-clamp-2">{objective}</h2>
         <StatusBadge status={currentStatus} />
       </div>

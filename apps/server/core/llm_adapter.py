@@ -39,7 +39,7 @@ class MockLLMAdapter(BaseLLMAdapter):
 
 
 class GeminiAdapter(BaseLLMAdapter):
-    def __init__(self, api_key: str, model: str = "gemini-1.5-flash") -> None:
+    def __init__(self, api_key: str, model: str = "gemini-2.0-flash") -> None:
         from langchain_google_genai import ChatGoogleGenerativeAI
 
         self._llm = ChatGoogleGenerativeAI(model=model, google_api_key=api_key)

@@ -5,10 +5,11 @@ from langgraph.graph import END, START, StateGraph
 from agents.nodes import budget_gate_node, evaluate_result_node, finalize_node
 from agents.state import AgentState
 from agents.supervisor import supervisor_node
-from agents.worker import MockSkill, worker_node
+from agents.worker import worker_node
 from core.budget import BudgetController
 from core.events import RunEventEmitter
 from core.llm_adapter import BaseLLMAdapter
+from skills.registry import SkillRegistry
 
 
 def build_graph(
@@ -16,12 +17,14 @@ def build_graph(
     adapter: BaseLLMAdapter,
     budget: BudgetController,
     emitter: RunEventEmitter,
+    registry: SkillRegistry | None = None,
 ):
-    skill = MockSkill()
+    if registry is None:
+        registry = SkillRegistry()
 
     supervisor_fn = functools.partial(supervisor_node, adapter=adapter, emitter=emitter)
     budget_fn = functools.partial(budget_gate_node, budget=budget, emitter=emitter)
-    worker_fn = functools.partial(worker_node, adapter=adapter, emitter=emitter, skill=skill)
+    worker_fn = functools.partial(worker_node, adapter=adapter, emitter=emitter, registry=registry)
     evaluate_fn = functools.partial(evaluate_result_node, emitter=emitter)
     finalize_fn = functools.partial(finalize_node, emitter=emitter)
 

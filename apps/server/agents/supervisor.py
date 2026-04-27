@@ -18,7 +18,7 @@ async def supervisor_node(
     await emitter.emit(RunEvent(
         run_id=state["run_id"],
         type=EventType.agent_started,
-        payload={"agent": "supervisor"},
+        payload={"agent_name": "supervisor"},
     ))
 
     prompt = (

@@ -3,6 +3,7 @@
 .superpowers/
 .worktrees/
 Ideia/
+docs/
 
 # ── Dependências ────────────────────────────────────────────────────────────
 node_modules/

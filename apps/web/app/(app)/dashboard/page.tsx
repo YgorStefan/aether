@@ -1,49 +1,22 @@
-import { BentoGrid, BentoItem } from '@/components/bento/bento-grid'
-import { SpotlightCard } from '@/components/ui/spotlight-card'
-import { Skeleton } from '@/components/ui/skeleton'
+import { createClient } from '@/lib/supabase-server'
+import { DashboardClient } from './dashboard-client'
+import type { Run } from '@/lib/api'
 
-export default function DashboardPage() {
+export default async function DashboardPage() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  const { data: runs } = await supabase
+    .from('runs')
+    .select('id, objective, status, created_at, total_tokens, cost_usd')
+    .eq('user_id', user!.id)
+    .order('created_at', { ascending: false })
+    .limit(5)
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       <h1 className="text-xl font-semibold text-[var(--color-text-primary)]">Dashboard</h1>
-
-      <BentoGrid>
-        <BentoItem colSpan={2}>
-          <SpotlightCard className="p-6 h-48">
-            <p className="text-sm text-[var(--color-text-muted)] mb-3">Objetivo</p>
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="mt-2 h-4 w-3/4" />
-          </SpotlightCard>
-        </BentoItem>
-
-        <BentoItem>
-          <SpotlightCard className="p-6 h-48">
-            <p className="text-sm text-[var(--color-text-muted)] mb-3">Agentes ativos</p>
-            <Skeleton className="h-8 w-16" />
-          </SpotlightCard>
-        </BentoItem>
-
-        <BentoItem>
-          <SpotlightCard className="p-6 h-40">
-            <p className="text-sm text-[var(--color-text-muted)] mb-3">Skills</p>
-            <div className="space-y-2">
-              <Skeleton className="h-4 w-full" />
-              <Skeleton className="h-4 w-5/6" />
-              <Skeleton className="h-4 w-4/6" />
-            </div>
-          </SpotlightCard>
-        </BentoItem>
-
-        <BentoItem colSpan={2}>
-          <SpotlightCard className="p-6 h-40">
-            <p className="text-sm text-[var(--color-text-muted)] mb-3">Runs recentes</p>
-            <div className="space-y-2">
-              <Skeleton className="h-8 w-full rounded-lg" />
-              <Skeleton className="h-8 w-full rounded-lg" />
-            </div>
-          </SpotlightCard>
-        </BentoItem>
-      </BentoGrid>
+      <DashboardClient initialRuns={(runs ?? []) as Run[]} />
     </div>
   )
 }

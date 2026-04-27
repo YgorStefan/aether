@@ -18,3 +18,4 @@ class AgentState(TypedDict):
     error: str
     total_input_tokens: int
     total_output_tokens: int
+    skill_cache: dict  # key: "{skill_name}:{sha256_params_hex[:16]}" → output str

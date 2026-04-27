@@ -15,6 +15,7 @@ def _make_state() -> AgentState:
         "error": "",
         "total_input_tokens": 0,
         "total_output_tokens": 0,
+        "skill_cache": {},
     }
 
 

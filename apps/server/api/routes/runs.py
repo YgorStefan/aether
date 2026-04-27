@@ -46,9 +46,10 @@ async def create_run(
     try:
         supabase = create_client(settings.supabase_url, settings.supabase_service_key)
         supabase.table("runs").insert(
-            {"id": run_id, "user_id": user["sub"], "objective": body.objective, "status": "running"}
+            {"id": run_id, "user_id": user["sub"], "objective": body.objective, "status": "RUNNING"}
         ).execute()
     except Exception as exc:
+        logger.exception("run_insert_failed", run_id=run_id)
         raise HTTPException(status_code=500, detail="Erro ao criar run") from exc
 
     emitter.create(run_id)
@@ -72,12 +73,18 @@ async def create_run(
             adapter = GeminiAdapter(api_key=settings.gemini_api_key)
             budget = BudgetController(limit_tokens=settings.default_budget_limit)
             graph = build_graph(adapter=adapter, budget=budget, emitter=emitter, registry=registry)
-            await graph.ainvoke(initial_state)
+            final_state = await graph.ainvoke(initial_state)
+            db_status = "FAILED" if final_state.get("status") == "failed" else "COMPLETED"
+            try:
+                supabase_inner = create_client(settings.supabase_url, settings.supabase_service_key)
+                supabase_inner.table("runs").update({"status": db_status}).eq("id", run_id).execute()
+            except Exception:
+                logger.exception("run_status_update_failed", run_id=run_id)
         except Exception:
             logger.exception("run_failed", run_id=run_id)
             try:
                 supabase_inner = create_client(settings.supabase_url, settings.supabase_service_key)
-                supabase_inner.table("runs").update({"status": "failed"}).eq("id", run_id).execute()
+                supabase_inner.table("runs").update({"status": "FAILED"}).eq("id", run_id).execute()
             except Exception:
                 logger.exception("run_status_update_failed", run_id=run_id)
 

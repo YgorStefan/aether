@@ -121,7 +121,7 @@ Contribuições são sempre bem-vindas! Se você deseja adicionar novas *Skills*
 
 ## 📄 Licença
 
-Este projeto é desenvolvido para uso privado e estudos avançados em Inteligência Artificial Agentica.
+Este projeto é desenvolvido para uso publico e estudos avançados em Inteligência Artificial Agentica.
 
 ---
 

@@ -1,0 +1,54 @@
+<h2>Seção 4 — Dashboard Layout</h2>
+<p class="subtitle">Bento Grid principal — como organizar os blocos no desktop e mobile</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Focus Layout</h3>
+      <p>Chat ocupa 60% da tela. Bento Grid lateral com status, skills e runs recentes. Graph View abre em painel expandido ao lado do chat.</p>
+      <div style="margin-top: 10px; display: grid; grid-template-columns: 3fr 2fr; gap: 4px; height: 80px;">
+        <div style="background: rgba(59,130,246,0.2); border: 1px solid rgba(59,130,246,0.4); border-radius: 4px; display: flex; align-items: center; justify-content: center; color: #93c5fd; font-size: 11px;">Chat / Objetivo</div>
+        <div style="display: grid; grid-template-rows: 1fr 1fr; gap: 4px;">
+          <div style="background: rgba(168,85,247,0.2); border: 1px solid rgba(168,85,247,0.4); border-radius: 4px; display: flex; align-items: center; justify-content: center; color: #d8b4fe; font-size: 10px;">Agent Status</div>
+          <div style="background: rgba(16,185,129,0.2); border: 1px solid rgba(16,185,129,0.4); border-radius: 4px; display: flex; align-items: center; justify-content: center; color: #6ee7b7; font-size: 10px;">Skills / Runs</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Bento Grid Puro</h3>
+      <p>Dashboard com blocos de tamanhos variados em grid. Hero block é o Graph View. Chat, Skills e Runs são blocos menores ao redor.</p>
+      <div style="margin-top: 10px; display: grid; grid-template-columns: 2fr 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 4px; height: 80px;">
+        <div style="background: rgba(168,85,247,0.2); border: 1px solid rgba(168,85,247,0.4); border-radius: 4px; grid-row: span 2; display: flex; align-items: center; justify-content: center; color: #d8b4fe; font-size: 11px;">Graph View</div>
+        <div style="background: rgba(59,130,246,0.2); border: 1px solid rgba(59,130,246,0.4); border-radius: 4px; display: flex; align-items: center; justify-content: center; color: #93c5fd; font-size: 10px;">Chat</div>
+        <div style="background: rgba(16,185,129,0.2); border: 1px solid rgba(16,185,129,0.4); border-radius: 4px; display: flex; align-items: center; justify-content: center; color: #6ee7b7; font-size: 10px;">Skills</div>
+        <div style="background: rgba(245,158,11,0.2); border: 1px solid rgba(245,158,11,0.4); border-radius: 4px; display: flex; align-items: center; justify-content: center; color: #fde68a; font-size: 10px;">Budget</div>
+        <div style="background: rgba(239,68,68,0.2); border: 1px solid rgba(239,68,68,0.4); border-radius: 4px; display: flex; align-items: center; justify-content: center; color: #fca5a5; font-size: 10px;">Runs</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Split View por Fase</h3>
+      <p>Tela dividida em duas: lado esquerdo é sempre o Chat/Input. Lado direito alterna entre Graph View, Logs e Histórico via abas.</p>
+      <div style="margin-top: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 4px; height: 80px;">
+        <div style="background: rgba(59,130,246,0.2); border: 1px solid rgba(59,130,246,0.4); border-radius: 4px; display: flex; align-items: center; justify-content: center; color: #93c5fd; font-size: 11px;">Chat sempre visível</div>
+        <div style="display: grid; grid-template-rows: auto 1fr; gap: 4px;">
+          <div style="background: rgba(30,30,40,0.8); border: 1px solid #334155; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: #64748b; font-size: 10px; padding: 2px 6px;">Graph | Logs | History</div>
+          <div style="background: rgba(168,85,247,0.2); border: 1px solid rgba(168,85,247,0.4); border-radius: 4px; display: flex; align-items: center; justify-content: center; color: #d8b4fe; font-size: 11px;">Painel ativo</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 20px; padding: 14px; background: rgba(15,15,20,0.6); border: 1px solid #1e293b; border-radius: 8px;">
+  <div class="label">Nota mobile</div>
+  <p style="color: #94a3b8; font-size: 13px; margin-top: 6px;">Em todos os layouts, no mobile (&lt;768px) o Bento Grid colapsa em coluna única. A ordem de renderização seria: Chat → Graph View (colapsável) → Skills → Runs recentes.</p>
+</div>

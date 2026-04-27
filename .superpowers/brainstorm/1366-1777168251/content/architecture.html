@@ -1,0 +1,73 @@
+<h2>Design — Seção 1: Arquitetura Geral</h2>
+<p class="subtitle">Visão do sistema completo — três camadas independentes conectadas por interfaces bem definidas</p>
+
+<div class="mockup">
+  <div class="mockup-header">Aether OS — System Architecture</div>
+  <div class="mockup-body" style="font-family: monospace; font-size: 13px; line-height: 1.8; padding: 24px;">
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 24px;">
+
+      <div style="border: 1px solid #3b82f6; border-radius: 8px; padding: 16px; background: rgba(59,130,246,0.08);">
+        <div style="color: #3b82f6; font-weight: 700; margin-bottom: 12px; font-size: 11px; letter-spacing: 0.1em;">CAMADA 1 — FRONTEND</div>
+        <div style="color: #e2e8f0; margin-bottom: 6px;">📦 Next.js 15 (App Router)</div>
+        <div style="color: #94a3b8; font-size: 12px; margin-bottom: 4px;">· Bento Grid Dashboard</div>
+        <div style="color: #94a3b8; font-size: 12px; margin-bottom: 4px;">· Chat Interface (SSE)</div>
+        <div style="color: #94a3b8; font-size: 12px; margin-bottom: 4px;">· React Flow Graph View</div>
+        <div style="color: #94a3b8; font-size: 12px; margin-bottom: 4px;">· HITL Approval Dialog</div>
+        <div style="color: #94a3b8; font-size: 12px;">· Auth (Supabase Client)</div>
+      </div>
+
+      <div style="border: 1px solid #a855f7; border-radius: 8px; padding: 16px; background: rgba(168,85,247,0.08);">
+        <div style="color: #a855f7; font-weight: 700; margin-bottom: 12px; font-size: 11px; letter-spacing: 0.1em;">CAMADA 2 — BACKEND</div>
+        <div style="color: #e2e8f0; margin-bottom: 6px;">🐍 FastAPI (Python)</div>
+        <div style="color: #94a3b8; font-size: 12px; margin-bottom: 4px;">· Agent Engine (LangGraph)</div>
+        <div style="color: #94a3b8; font-size: 12px; margin-bottom: 4px;">· Supervisor + Workers</div>
+        <div style="color: #94a3b8; font-size: 12px; margin-bottom: 4px;">· Skill Registry</div>
+        <div style="color: #94a3b8; font-size: 12px; margin-bottom: 4px;">· Budget Controller</div>
+        <div style="color: #94a3b8; font-size: 12px;">· MCP Server</div>
+      </div>
+
+      <div style="border: 1px solid #10b981; border-radius: 8px; padding: 16px; background: rgba(16,185,129,0.08);">
+        <div style="color: #10b981; font-weight: 700; margin-bottom: 12px; font-size: 11px; letter-spacing: 0.1em;">CAMADA 3 — DATA</div>
+        <div style="color: #e2e8f0; margin-bottom: 6px;">🗄️ Supabase</div>
+        <div style="color: #94a3b8; font-size: 12px; margin-bottom: 4px;">· Auth + JWT</div>
+        <div style="color: #94a3b8; font-size: 12px; margin-bottom: 4px;">· PostgreSQL (runs, users)</div>
+        <div style="color: #94a3b8; font-size: 12px; margin-bottom: 4px;">· pgvector (memória RAG)</div>
+        <div style="color: #94a3b8; font-size: 12px; margin-bottom: 4px;">· RLS (isolamento por user)</div>
+        <div style="color: #94a3b8; font-size: 12px;">· LangSmith (traces)</div>
+      </div>
+
+    </div>
+
+    <div style="text-align: center; color: #64748b; margin-bottom: 16px; font-size: 12px;">— Fluxo de uma request —</div>
+
+    <div style="display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap;">
+      <div style="background: rgba(59,130,246,0.15); border: 1px solid #3b82f6; border-radius: 6px; padding: 8px 14px; color: #93c5fd; font-size: 12px;">User input</div>
+      <div style="color: #475569;">→</div>
+      <div style="background: rgba(59,130,246,0.15); border: 1px solid #3b82f6; border-radius: 6px; padding: 8px 14px; color: #93c5fd; font-size: 12px;">Next.js</div>
+      <div style="color: #475569;">→</div>
+      <div style="background: rgba(168,85,247,0.15); border: 1px solid #a855f7; border-radius: 6px; padding: 8px 14px; color: #d8b4fe; font-size: 12px;">FastAPI<br><span style="font-size: 10px; color: #94a3b8;">(JWT validated)</span></div>
+      <div style="color: #475569;">→</div>
+      <div style="background: rgba(168,85,247,0.15); border: 1px solid #a855f7; border-radius: 6px; padding: 8px 14px; color: #d8b4fe; font-size: 12px;">LangGraph<br><span style="font-size: 10px; color: #94a3b8;">Supervisor</span></div>
+      <div style="color: #475569;">→</div>
+      <div style="background: rgba(168,85,247,0.15); border: 1px solid #a855f7; border-radius: 6px; padding: 8px 14px; color: #d8b4fe; font-size: 12px;">Workers +<br><span style="font-size: 10px; color: #94a3b8;">Skills</span></div>
+      <div style="color: #475569;">→</div>
+      <div style="background: rgba(59,130,246,0.15); border: 1px solid #3b82f6; border-radius: 6px; padding: 8px 14px; color: #93c5fd; font-size: 12px;">SSE stream<br><span style="font-size: 10px; color: #94a3b8;">→ UI</span></div>
+    </div>
+
+    <div style="margin-top: 20px; padding: 12px; background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.3); border-radius: 6px;">
+      <div style="color: #fbbf24; font-size: 11px; font-weight: 700; margin-bottom: 6px;">SERVIÇOS EXTERNOS</div>
+      <div style="display: flex; gap: 16px; flex-wrap: wrap;">
+        <span style="color: #94a3b8; font-size: 12px;">🔍 Tavily (WebSearch)</span>
+        <span style="color: #94a3b8; font-size: 12px;">🐍 E2B (CodeInterpreter sandbox)</span>
+        <span style="color: #94a3b8; font-size: 12px;">🧠 Gemini Flash (LLM)</span>
+        <span style="color: #94a3b8; font-size: 12px;">📊 LangSmith (traces)</span>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="section" style="margin-top: 16px;">
+  <p style="color: #94a3b8; font-size: 14px;">Essa arquitetura usa três fronteiras claras: UI não conhece o banco, FastAPI não conhece o Supabase Client, agentes não conhecem HTTP. Cada camada é testável e substituível de forma independente.</p>
+</div>

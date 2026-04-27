@@ -10,10 +10,21 @@ import { ChatErrorBoundary } from '@/components/chat/chat-error-boundary'
 import { SkillsCatalog } from '@/components/skills/skills-catalog'
 import { RunCard } from '@/components/run/run-card'
 import { createRun, type Run } from '@/lib/api'
+import { createClient } from '@/lib/supabase'
 
 export function DashboardClient({ initialRuns }: { initialRuns: Run[] }) {
   const router = useRouter()
   const [runs, setRuns] = useState<Run[]>(initialRuns)
+
+  async function handleDelete(id: string) {
+    setRuns(prev => prev.filter(r => r.id !== id))
+    try {
+      const supabase = createClient()
+      await supabase.from('runs').delete().eq('id', id)
+    } catch {
+      toast.error('Erro ao deletar run')
+    }
+  }
 
   async function handleSubmit(objective: string) {
     const optimisticId = `optimistic-${Date.now()}`
@@ -66,7 +77,20 @@ export function DashboardClient({ initialRuns }: { initialRuns: Run[] }) {
           ) : (
             <div className="space-y-2">
               {runs.slice(0, 5).map(run => (
-                <RunCard key={run.id} run={run} />
+                <div key={run.id} className="flex items-center gap-2">
+                  <div className="flex-1 min-w-0">
+                    <RunCard run={run} />
+                  </div>
+                  <button
+                    onClick={() => handleDelete(run.id)}
+                    aria-label="Deletar run"
+                    className="shrink-0 p-1.5 rounded text-[var(--color-text-muted)] hover:text-[var(--color-error)] hover:bg-red-950 transition-colors"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+                    </svg>
+                  </button>
+                </div>
               ))}
             </div>
           )}

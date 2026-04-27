@@ -2,7 +2,7 @@ import type { MetadataRoute } from 'next'
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'Aether OS',
+    name: 'Aether',
     short_name: 'Aether',
     description: 'AI agent orchestrator',
     start_url: '/dashboard',

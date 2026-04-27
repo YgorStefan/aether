@@ -4,7 +4,7 @@ export default function LandingPage() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-[var(--color-background)] px-4 text-center">
       <h1 className="text-4xl font-bold text-[var(--color-text-primary)] mb-4">
-        Aether OS
+        Aether
       </h1>
       <p className="text-lg text-[var(--color-text-secondary)] mb-8 max-w-md">
         Orquestrador de agentes de IA. Defina um objetivo, assista os agentes colaborando em tempo real.

@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'Aether OS',
+  title: 'Aether',
   description: 'AI agent orchestrator',
 }
 

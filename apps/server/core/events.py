@@ -10,6 +10,8 @@ class EventType(str, Enum):
     agent_started = "agent_started"
     task_started = "task_started"
     task_completed = "task_completed"
+    skill_called = "skill_called"
+    hitl_required = "hitl_required"
     run_completed = "run_completed"
     run_failed = "run_failed"
     budget_warning = "budget_warning"

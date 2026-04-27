@@ -9,6 +9,7 @@ from supabase import create_client
 
 from agents.graph import build_graph
 from agents.state import AgentState
+from api.deps import registry
 from api.middleware.auth import get_current_user
 from api.middleware.rate_limit import limiter
 from core.budget import BudgetController
@@ -61,6 +62,7 @@ async def create_run(
         "error": "",
         "total_input_tokens": 0,
         "total_output_tokens": 0,
+        "skill_cache": {},
     }
 
     async def _run() -> None:
@@ -69,7 +71,7 @@ async def create_run(
             # Google ADC initialization when gemini_api_key is empty in tests.
             adapter = GeminiAdapter(api_key=settings.gemini_api_key)
             budget = BudgetController(limit_tokens=settings.default_budget_limit)
-            graph = build_graph(adapter=adapter, budget=budget, emitter=emitter)
+            graph = build_graph(adapter=adapter, budget=budget, emitter=emitter, registry=registry)
             await graph.ainvoke(initial_state)
         except Exception:
             logger.exception("run_failed", run_id=run_id)

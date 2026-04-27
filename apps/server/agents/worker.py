@@ -1,12 +1,17 @@
+import hashlib
+import json
+
 from pydantic import BaseModel
 
 from agents.state import AgentState, Task
 from core.events import EventType, RunEvent, RunEventEmitter
 from core.llm_adapter import BaseLLMAdapter
+from skills.registry import SkillRegistry
 
 
-class ThinkResult(BaseModel):
-    approach: str
+class SkillSelection(BaseModel):
+    skill_name: str
+    rationale: str
 
 
 class ObserveResult(BaseModel):
@@ -18,13 +23,10 @@ class DecisionResult(BaseModel):
     result: str
 
 
-class SkillResult(BaseModel):
-    output: str
-
-
-class MockSkill:
-    async def execute(self, approach: str) -> SkillResult:
-        return SkillResult(output=f"Executado: {approach}")
+def _cache_key(skill_name: str, params: BaseModel) -> str:
+    params_json = json.dumps(params.model_dump(), sort_keys=True)
+    digest = hashlib.sha256(params_json.encode()).hexdigest()[:16]
+    return f"{skill_name}:{digest}"
 
 
 async def worker_node(
@@ -32,7 +34,7 @@ async def worker_node(
     *,
     adapter: BaseLLMAdapter,
     emitter: RunEventEmitter,
-    skill: MockSkill,
+    registry: SkillRegistry,
 ) -> dict:
     idx = state["current_task_index"]
     task = state["tasks"][idx]
@@ -43,36 +45,89 @@ async def worker_node(
         payload={"task": task.description, "index": idx},
     ))
 
-    # Think
-    think_prompt = (
-        f"Tarefa: {task.description}\nObjetivo: {state['objective']}\n"
-        f"Como você vai abordar esta tarefa?"
-    )
-    think_result, i1, o1 = await adapter.generate(think_prompt, ThinkResult, state)
+    total_input = state["total_input_tokens"]
+    total_output = state["total_output_tokens"]
 
-    # Act
-    skill_result = await skill.execute(think_result.approach)
+    # Think step 1: selecionar skill
+    skill_list = "\n".join(
+        f"- {m.name}: {m.description}" for m in registry.list_all()
+    )
+    selection_prompt = (
+        f"Skills disponíveis:\n{skill_list}\n\n"
+        f"Objetivo: {state['objective']}\n"
+        f"Tarefa atual: {task.description}\n\n"
+        f"Escolha a skill mais adequada para executar esta tarefa."
+    )
+    selection, i1, o1 = await adapter.generate(selection_prompt, SkillSelection, state)
+    total_input += i1
+    total_output += o1
+
+    skill = registry.get(selection.skill_name)
+
+    # Think step 2: gerar parâmetros no schema da skill
+    params_prompt = (
+        f"Tarefa: {task.description}\n"
+        f"Skill escolhida: {skill.name}\n"
+        f"Gere os parâmetros necessários para executar esta skill."
+    )
+    params, i2, o2 = await adapter.generate(params_prompt, skill.parameters, state)
+    total_input += i2
+    total_output += o2
+
+    # Cache check
+    key = _cache_key(skill.name, params)
+    updated_cache = dict(state["skill_cache"])
+
+    if key in updated_cache:
+        skill_output = updated_cache[key]
+    else:
+        # HITL: emite evento se skill requer aprovação (pause real é Fase 5)
+        if skill.requires_approval:
+            await emitter.emit(RunEvent(
+                run_id=state["run_id"],
+                type=EventType.hitl_required,
+                payload={"skill": skill.name, "params": params.model_dump()},
+            ))
+
+        await emitter.emit(RunEvent(
+            run_id=state["run_id"],
+            type=EventType.skill_called,
+            payload={"skill": skill.name},
+        ))
+
+        skill_result = await skill.execute(params)
+        skill_output = skill_result.output
+        updated_cache[key] = skill_output
 
     # Observe
     observe_prompt = (
-        f"Tarefa: {task.description}\nResultado da ação: {skill_result.output}\n"
-        f"Quais são suas observações?"
+        f"Tarefa: {task.description}\n"
+        f"Resultado da skill '{skill.name}': {skill_output}\n"
+        f"Quais são suas observações sobre o resultado?"
     )
-    observe_result, i2, o2 = await adapter.generate(observe_prompt, ObserveResult, state)
+    observe_result, i3, o3 = await adapter.generate(observe_prompt, ObserveResult, state)
+    total_input += i3
+    total_output += o3
 
     # Decide
     decide_prompt = (
-        f"Tarefa: {task.description}\nObservações: {observe_result.observations}\n"
-        f"A tarefa está completa?"
+        f"Tarefa: {task.description}\n"
+        f"Observações: {observe_result.observations}\n"
+        f"A tarefa está completa com base nessas observações?"
     )
-    decision, i3, o3 = await adapter.generate(decide_prompt, DecisionResult, state)
+    decision, i4, o4 = await adapter.generate(decide_prompt, DecisionResult, state)
+    total_input += i4
+    total_output += o4
 
     updated_status = "done" if decision.is_complete else "failed"
     updated_tasks = list(state["tasks"])
-    updated_tasks[idx] = task.model_copy(update={"result": decision.result, "status": updated_status})
+    updated_tasks[idx] = task.model_copy(
+        update={"result": decision.result, "status": updated_status}
+    )
 
     return {
         "tasks": updated_tasks,
-        "total_input_tokens": state["total_input_tokens"] + i1 + i2 + i3,
-        "total_output_tokens": state["total_output_tokens"] + o1 + o2 + o3,
+        "total_input_tokens": total_input,
+        "total_output_tokens": total_output,
+        "skill_cache": updated_cache,
     }

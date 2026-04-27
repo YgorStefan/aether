@@ -61,6 +61,7 @@ async def create_run(
         "error": "",
         "total_input_tokens": 0,
         "total_output_tokens": 0,
+        "skill_cache": {},
     }
 
     async def _run() -> None:

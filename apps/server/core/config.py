@@ -12,6 +12,9 @@ class Settings(BaseSettings):
     langsmith_api_key: str = ""
     langsmith_project: str = "aether-os"
 
+    tavily_api_key: str = ""
+    e2b_api_key: str = ""
+
     frontend_url: str = "http://localhost:3000"
     default_budget_limit: int = 10000
     max_requests_per_minute: int = 20

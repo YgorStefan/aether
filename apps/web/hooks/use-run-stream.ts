@@ -30,10 +30,12 @@ export function useRunStream(runId: string | null) {
   const [error, setError] = useState<string | null>(null)
   const abortRef = useRef<AbortController | null>(null)
   const retryRef = useRef(0)
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     if (!runId) return
 
+    retryRef.current = 0
     let cancelled = false
 
     async function connect() {
@@ -92,7 +94,7 @@ export function useRunStream(runId: string | null) {
         if (cancelled || (err instanceof Error && err.name === 'AbortError')) return
         const delay = Math.min(1000 * 2 ** retryRef.current, MAX_BACKOFF_MS)
         retryRef.current += 1
-        setTimeout(connect, delay)
+        timerRef.current = setTimeout(connect, delay)
       }
     }
 
@@ -101,6 +103,7 @@ export function useRunStream(runId: string | null) {
     return () => {
       cancelled = true
       abortRef.current?.abort()
+      if (timerRef.current) clearTimeout(timerRef.current)
     }
   }, [runId])
 

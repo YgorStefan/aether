@@ -21,19 +21,16 @@ describe('useRunStream', () => {
   })
 
   it('move para connecting quando runId é fornecido', async () => {
-    const mockReader = {
-      read: vi.fn().mockResolvedValue({ done: true, value: undefined }),
-    }
-    const mockBody = { getReader: () => mockReader }
+    // fetch never resolves, keeping the hook suspended at 'connecting'
+    vi.stubGlobal('fetch', vi.fn().mockReturnValue(new Promise<Response>(() => {})))
 
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      body: mockBody,
-    }))
+    const { result, unmount } = renderHook(() => useRunStream('run-123'))
 
-    const { result } = renderHook(() => useRunStream('run-123'))
-    expect(result.current.status).toBe('idle')
+    await waitFor(() => {
+      expect(result.current.status).toBe('connecting')
+    })
 
+    unmount()
     vi.restoreAllMocks()
   })
 

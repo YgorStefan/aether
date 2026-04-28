@@ -52,3 +52,13 @@ export async function approveRun(runId: string, decision: 'approve' | 'reject'):
   })
   if (!res.ok) throw new Error(await res.text())
 }
+
+export async function getRunEvents(runId: string): Promise<RunEvent[]> {
+  const headers = await authHeaders()
+  const res = await fetch(`${API_URL}/api/v1/runs/${runId}/events`, { headers })
+  if (!res.ok) throw new Error(await res.text())
+  return res.json()
+}
+
+// Re-export RunEvent type alinhado com o hook
+export type { RunEvent } from '@/hooks/use-run-stream'

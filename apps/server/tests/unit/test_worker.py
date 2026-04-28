@@ -32,6 +32,17 @@ class _ApprovalSkill(Skill):
         return SkillResult(success=True, output="aprovado")
 
 
+class _MockHitlStore:
+    def __init__(self, decision: str = "approve") -> None:
+        self._decision = decision
+
+    async def wait_for_decision(self, run_id: str) -> str:
+        return self._decision
+
+    def cleanup(self, run_id: str) -> None:
+        pass
+
+
 def _make_registry(skill: Skill | None = None) -> SkillRegistry:
     registry = SkillRegistry()
     registry.register(skill or _MockSkill())
@@ -62,12 +73,15 @@ async def test_worker_completa_tarefa_com_sucesso():
 
     e = RunEventEmitter()
     e.create("run-1")
-    result = await worker_node(_make_state(), adapter=mock, emitter=e, registry=_make_registry())
+    result = await worker_node(
+        _make_state(), adapter=mock, emitter=e,
+        registry=_make_registry(), hitl_store=_MockHitlStore()
+    )
 
     assert result["tasks"][0].status == "done"
     assert result["tasks"][0].result == "Concluído"
-    assert result["total_input_tokens"] == 400   # 4 chamadas × 100
-    assert result["total_output_tokens"] == 200  # 4 chamadas × 50
+    assert result["total_input_tokens"] == 400
+    assert result["total_output_tokens"] == 200
 
 
 @pytest.mark.asyncio
@@ -86,16 +100,16 @@ async def test_worker_usa_cache_quando_disponivel():
     e = RunEventEmitter()
     e.create("run-1")
     result = await worker_node(
-        _make_state(skill_cache=initial_cache), adapter=mock, emitter=e, registry=_make_registry()
+        _make_state(skill_cache=initial_cache), adapter=mock, emitter=e,
+        registry=_make_registry(), hitl_store=_MockHitlStore()
     )
 
     assert result["tasks"][0].status == "done"
-    # Skill não foi chamada diretamente (cache hit), mas o resultado ainda existe
-    assert result["skill_cache"] == initial_cache  # cache inalterado pois era hit
+    assert result["skill_cache"] == initial_cache
 
 
 @pytest.mark.asyncio
-async def test_worker_emite_hitl_para_skill_com_approval():
+async def test_worker_emite_hitl_e_executa_quando_aprovado():
     registry = _make_registry(_ApprovalSkill())
 
     mock = MockLLMAdapter()
@@ -106,15 +120,39 @@ async def test_worker_emite_hitl_para_skill_com_approval():
 
     e = RunEventEmitter()
     e.create("run-1")
-    await worker_node(_make_state(), adapter=mock, emitter=e, registry=registry)
+    result = await worker_node(
+        _make_state(), adapter=mock, emitter=e,
+        registry=registry, hitl_store=_MockHitlStore(decision="approve")
+    )
 
-    emitted_events: list = []
+    # Coletar eventos emitidos
+    emitted: list = []
     while not e._queues["run-1"].empty():
-        emitted_events.append(e._queues["run-1"].get_nowait())
+        emitted.append(e._queues["run-1"].get_nowait())
 
-    hitl_events = [ev for ev in emitted_events if ev.type == EventType.hitl_required]
+    hitl_events = [ev for ev in emitted if ev.type == EventType.hitl_required]
     assert len(hitl_events) == 1
     assert hitl_events[0].payload["skill"] == "approval_skill"
+    assert result["tasks"][0].status == "done"
+
+
+@pytest.mark.asyncio
+async def test_worker_falha_quando_rejeitado():
+    registry = _make_registry(_ApprovalSkill())
+
+    mock = MockLLMAdapter()
+    mock.enqueue(SkillSelection, SkillSelection(skill_name="approval_skill", rationale="r"))
+    mock.enqueue(_MockParams, _MockParams(value="x"))
+
+    e = RunEventEmitter()
+    e.create("run-1")
+    result = await worker_node(
+        _make_state(), adapter=mock, emitter=e,
+        registry=registry, hitl_store=_MockHitlStore(decision="reject")
+    )
+
+    assert result["tasks"][0].status == "failed"
+    assert "rejeitou" in result["tasks"][0].result.lower()
 
 
 @pytest.mark.asyncio
@@ -127,6 +165,9 @@ async def test_worker_marca_failed_quando_nao_completo():
 
     e = RunEventEmitter()
     e.create("run-1")
-    result = await worker_node(_make_state(), adapter=mock, emitter=e, registry=_make_registry())
+    result = await worker_node(
+        _make_state(), adapter=mock, emitter=e,
+        registry=_make_registry(), hitl_store=_MockHitlStore()
+    )
 
     assert result["tasks"][0].status == "failed"

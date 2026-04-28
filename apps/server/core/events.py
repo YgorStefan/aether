@@ -12,6 +12,7 @@ class EventType(str, Enum):
     task_completed = "task_completed"
     skill_called = "skill_called"
     hitl_required = "hitl_required"
+    hitl_resolved = "hitl_resolved"
     run_completed = "run_completed"
     run_failed = "run_failed"
     budget_warning = "budget_warning"

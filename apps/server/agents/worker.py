@@ -5,6 +5,7 @@ from pydantic import BaseModel
 
 from agents.state import AgentState, Task
 from core.events import EventType, RunEvent, RunEventEmitter
+from core.hitl_store import HitlStore
 from core.llm_adapter import BaseLLMAdapter
 from skills.registry import SkillRegistry
 
@@ -35,6 +36,7 @@ async def worker_node(
     adapter: BaseLLMAdapter,
     emitter: RunEventEmitter,
     registry: SkillRegistry,
+    hitl_store: HitlStore,
 ) -> dict:
     idx = state["current_task_index"]
     task = state["tasks"][idx]
@@ -81,13 +83,26 @@ async def worker_node(
     if key in updated_cache:
         skill_output = updated_cache[key]
     else:
-        # HITL: emite evento se skill requer aprovação (pause real é Fase 5)
         if skill.requires_approval:
             await emitter.emit(RunEvent(
                 run_id=state["run_id"],
                 type=EventType.hitl_required,
                 payload={"skill": skill.name, "params": params.model_dump()},
             ))
+
+            decision = await hitl_store.wait_for_decision(state["run_id"])
+
+            if decision == "reject":
+                updated_tasks = list(state["tasks"])
+                updated_tasks[idx] = task.model_copy(
+                    update={"status": "failed", "result": "Usuário rejeitou a execução da skill"}
+                )
+                return {
+                    "tasks": updated_tasks,
+                    "total_input_tokens": total_input,
+                    "total_output_tokens": total_output,
+                    "skill_cache": updated_cache,
+                }
 
         await emitter.emit(RunEvent(
             run_id=state["run_id"],
@@ -115,14 +130,14 @@ async def worker_node(
         f"Observações: {observe_result.observations}\n"
         f"A tarefa está completa com base nessas observações?"
     )
-    decision, i4, o4 = await adapter.generate(decide_prompt, DecisionResult, state)
+    decision_result, i4, o4 = await adapter.generate(decide_prompt, DecisionResult, state)
     total_input += i4
     total_output += o4
 
-    updated_status = "done" if decision.is_complete else "failed"
+    updated_status = "done" if decision_result.is_complete else "failed"
     updated_tasks = list(state["tasks"])
     updated_tasks[idx] = task.model_copy(
-        update={"result": decision.result, "status": updated_status}
+        update={"result": decision_result.result, "status": updated_status}
     )
 
     return {

@@ -1,5 +1,3 @@
-import functools
-
 from pydantic import BaseModel
 
 from agents.state import AgentState, Task

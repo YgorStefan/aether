@@ -16,6 +16,8 @@ def _make_state(**overrides) -> AgentState:
         "total_input_tokens": 0,
         "total_output_tokens": 0,
         "skill_cache": {},
+        "budget_limit": 10000,
+        "task_start_tokens": 0,
     }
     return {**base, **overrides}
 

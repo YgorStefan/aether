@@ -60,6 +60,8 @@ def _make_state(skill_cache: dict | None = None) -> AgentState:
         "total_input_tokens": 0,
         "total_output_tokens": 0,
         "skill_cache": skill_cache or {},
+        "budget_limit": 10000,
+        "task_start_tokens": 0,
     }
 
 

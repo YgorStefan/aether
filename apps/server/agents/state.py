@@ -19,3 +19,5 @@ class AgentState(TypedDict):
     total_input_tokens: int
     total_output_tokens: int
     skill_cache: dict  # key: "{skill_name}:{sha256_params_hex[:16]}" → output str
+    budget_limit: int
+    task_start_tokens: int  # snapshot de tokens ao início de cada tarefa, para calcular delta por worker

@@ -1,5 +1,6 @@
 import asyncio
 import uuid
+from typing import Literal
 
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -14,7 +15,8 @@ from api.middleware.auth import get_current_user
 from api.middleware.rate_limit import limiter
 from core.budget import BudgetController
 from core.config import settings
-from core.events import emitter
+from core.events import EventType, RunEvent, emitter
+from core.hitl_store import hitl_store
 from core.llm_adapter import GeminiAdapter
 from core.security import InjectionDetected, check_prompt
 
@@ -27,6 +29,10 @@ _background_tasks: set[asyncio.Task] = set()
 
 class RunRequest(BaseModel):
     objective: str = Field(..., min_length=10, max_length=500)
+
+
+class ApproveRequest(BaseModel):
+    decision: Literal["approve", "reject"]
 
 
 @router.post("/runs", status_code=202)
@@ -53,6 +59,7 @@ async def create_run(
         raise HTTPException(status_code=500, detail="Erro ao criar run") from exc
 
     emitter.create(run_id)
+    hitl_store.create(run_id)
 
     initial_state: AgentState = {
         "run_id": run_id,
@@ -68,11 +75,12 @@ async def create_run(
 
     async def _run() -> None:
         try:
-            # GeminiAdapter constructed here (not at request time) to avoid
-            # Google ADC initialization when gemini_api_key is empty in tests.
             adapter = GeminiAdapter(api_key=settings.gemini_api_key)
             budget = BudgetController(limit_tokens=settings.default_budget_limit)
-            graph = build_graph(adapter=adapter, budget=budget, emitter=emitter, registry=registry)
+            graph = build_graph(
+                adapter=adapter, budget=budget, emitter=emitter,
+                registry=registry, hitl_store=hitl_store
+            )
             final_state = await graph.ainvoke(initial_state)
             db_status = "FAILED" if final_state.get("status") == "failed" else "COMPLETED"
             try:
@@ -87,6 +95,8 @@ async def create_run(
                 supabase_inner.table("runs").update({"status": "FAILED"}).eq("id", run_id).execute()
             except Exception:
                 logger.exception("run_status_update_failed", run_id=run_id)
+        finally:
+            hitl_store.cleanup(run_id)
 
     task = asyncio.create_task(_run())
     _background_tasks.add(task)
@@ -110,3 +120,26 @@ async def stream_run(
             yield {"event": event.type.value, "data": event.model_dump_json()}
 
     return EventSourceResponse(event_generator())
+
+
+@router.post("/runs/{run_id}/approve", status_code=200)
+@limiter.limit("20/minute")
+async def approve_run(
+    request: Request,
+    run_id: str,
+    body: ApproveRequest,
+    user: dict = Depends(get_current_user),
+) -> dict:
+    supabase = create_client(settings.supabase_url, settings.supabase_service_key)
+    result = supabase.table("runs").select("id").eq("id", run_id).eq("user_id", user["sub"]).execute()
+    if not result.data:
+        raise HTTPException(status_code=404, detail="Run não encontrada")
+
+    await emitter.emit(RunEvent(
+        run_id=run_id,
+        type=EventType.hitl_resolved,
+        payload={"decision": body.decision},
+    ))
+    hitl_store.resolve(run_id, body.decision)
+
+    return {"ok": True}

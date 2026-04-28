@@ -8,6 +8,7 @@ from agents.supervisor import supervisor_node
 from agents.worker import worker_node
 from core.budget import BudgetController
 from core.events import RunEventEmitter
+from core.hitl_store import HitlStore
 from core.llm_adapter import BaseLLMAdapter
 from skills.registry import SkillRegistry
 
@@ -18,10 +19,14 @@ def build_graph(
     budget: BudgetController,
     emitter: RunEventEmitter,
     registry: SkillRegistry,
+    hitl_store: HitlStore,
 ):
     supervisor_fn = functools.partial(supervisor_node, adapter=adapter, emitter=emitter)
     budget_fn = functools.partial(budget_gate_node, budget=budget, emitter=emitter)
-    worker_fn = functools.partial(worker_node, adapter=adapter, emitter=emitter, registry=registry)
+    worker_fn = functools.partial(
+        worker_node, adapter=adapter, emitter=emitter,
+        registry=registry, hitl_store=hitl_store
+    )
     evaluate_fn = functools.partial(evaluate_result_node, emitter=emitter)
     finalize_fn = functools.partial(finalize_node, emitter=emitter)
 

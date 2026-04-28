@@ -48,3 +48,45 @@ async def test_close_without_listen_cleans_up():
     e.create("run-x")
     await e.close("run-x")
     assert "run-x" not in e._queues
+
+
+@pytest.mark.asyncio
+async def test_subscriber_e_chamado_ao_emitir():
+    e = RunEventEmitter()
+    e.create("run-sub")
+
+    received: list[RunEvent] = []
+
+    async def sub(event: RunEvent) -> None:
+        received.append(event)
+
+    e.add_subscriber("run-sub", sub)
+    await e.emit(RunEvent(run_id="run-sub", type=EventType.agent_started))
+    await e.emit(RunEvent(run_id="run-sub", type=EventType.run_completed))
+
+    assert len(received) == 2
+    assert received[0].type == EventType.agent_started
+    assert received[1].type == EventType.run_completed
+
+
+@pytest.mark.asyncio
+async def test_subscriber_removido_no_close():
+    e = RunEventEmitter()
+    e.create("run-close")
+
+    called = []
+
+    async def sub(event: RunEvent) -> None:
+        called.append(event)
+
+    e.add_subscriber("run-close", sub)
+    await e.close("run-close")
+
+    assert "run-close" not in e._subscribers
+
+
+def test_subscriber_run_desconhecido_nao_falha():
+    e = RunEventEmitter()
+    # add_subscriber sem create não deve levantar
+    async def sub(event): ...
+    e.add_subscriber("nao-existe", sub)

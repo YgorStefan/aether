@@ -61,6 +61,21 @@ async def create_run(
     emitter.create(run_id)
     hitl_store.create(run_id)
 
+    async def _persist_event(event: RunEvent) -> None:
+        try:
+            sb = create_client(settings.supabase_url, settings.supabase_service_key)
+            sb.table("run_events").insert({
+                "run_id": event.run_id,
+                "type": event.type.value,
+                "agent_name": event.agent_name,
+                "payload": event.payload,
+                "tokens_used": event.tokens_used,
+            }).execute()
+        except Exception:
+            logger.exception("event_persist_failed", run_id=event.run_id, type=event.type.value)
+
+    emitter.add_subscriber(run_id, _persist_event)
+
     initial_state: AgentState = {
         "run_id": run_id,
         "objective": body.objective,
@@ -71,6 +86,8 @@ async def create_run(
         "total_input_tokens": 0,
         "total_output_tokens": 0,
         "skill_cache": {},
+        "budget_limit": settings.default_budget_limit,
+        "task_start_tokens": 0,
     }
 
     async def _run() -> None:
@@ -79,13 +96,21 @@ async def create_run(
             budget = BudgetController(limit_tokens=settings.default_budget_limit)
             graph = build_graph(
                 adapter=adapter, budget=budget, emitter=emitter,
-                registry=registry, hitl_store=hitl_store
+                registry=registry, hitl_store=hitl_store,
+                langsmith_enabled=bool(settings.langsmith_api_key),
             )
             final_state = await graph.ainvoke(initial_state)
             db_status = "FAILED" if final_state.get("status") == "failed" else "COMPLETED"
+            total_input = final_state.get("total_input_tokens", 0)
+            total_output = final_state.get("total_output_tokens", 0)
+            cost = budget.cost_usd(total_input, total_output)
             try:
                 supabase_inner = create_client(settings.supabase_url, settings.supabase_service_key)
-                supabase_inner.table("runs").update({"status": db_status}).eq("id", run_id).execute()
+                supabase_inner.table("runs").update({
+                    "status": db_status,
+                    "total_tokens": total_input + total_output,
+                    "cost_usd": float(cost),
+                }).eq("id", run_id).execute()
             except Exception:
                 logger.exception("run_status_update_failed", run_id=run_id)
         except Exception:
@@ -143,3 +168,23 @@ async def approve_run(
     hitl_store.resolve(run_id, body.decision)
 
     return {"ok": True}
+
+
+@router.get("/runs/{run_id}/events")
+async def get_run_events(
+    run_id: str,
+    user: dict = Depends(get_current_user),
+) -> list[dict]:
+    supabase = create_client(settings.supabase_url, settings.supabase_service_key)
+    result = supabase.table("runs").select("id").eq("id", run_id).eq("user_id", user["sub"]).execute()
+    if not result.data:
+        raise HTTPException(status_code=404, detail="Run não encontrada")
+
+    events_result = (
+        supabase.table("run_events")
+        .select("*")
+        .eq("run_id", run_id)
+        .order("created_at")
+        .execute()
+    )
+    return events_result.data

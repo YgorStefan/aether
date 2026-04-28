@@ -46,7 +46,10 @@ class RunEventEmitter:
         if q:
             await q.put(event)
         for sub in self._subscribers.get(event.run_id, []):
-            await sub(event)
+            try:
+                await sub(event)
+            except Exception:
+                pass
 
     async def close(self, run_id: str) -> None:
         q = self._queues.pop(run_id, None)

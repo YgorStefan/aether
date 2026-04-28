@@ -43,13 +43,12 @@ export async function getSkills(): Promise<SkillMetadata[]> {
   return res.json()
 }
 
-// Stub — endpoint doesn't exist until Phase 5. Will return 404 in runtime.
-export async function approveRun(runId: string, approved: boolean): Promise<void> {
+export async function approveRun(runId: string, decision: 'approve' | 'reject'): Promise<void> {
   const headers = await authHeaders()
   const res = await fetch(`${API_URL}/api/v1/runs/${runId}/approve`, {
     method: 'POST',
     headers: { ...headers, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ approved }),
+    body: JSON.stringify({ decision }),
   })
   if (!res.ok) throw new Error(await res.text())
 }

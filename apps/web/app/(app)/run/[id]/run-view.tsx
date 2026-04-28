@@ -54,12 +54,17 @@ function deriveTokenState(events: RunEvent[]): TokenState {
 }
 
 function buildAgentTokenTable(events: RunEvent[]): Array<{ agent: string; tokens: number }> {
-  return events
-    .filter(e =>
+  const totals = new Map<string, number>()
+  for (const e of events) {
+    if (
       (e.type === 'agent_started' || e.type === 'task_completed') &&
       (e.tokens_used ?? 0) > 0
-    )
-    .map(e => ({ agent: e.agent_name ?? 'unknown', tokens: e.tokens_used ?? 0 }))
+    ) {
+      const key = e.agent_name ?? 'unknown'
+      totals.set(key, (totals.get(key) ?? 0) + (e.tokens_used ?? 0))
+    }
+  }
+  return Array.from(totals.entries()).map(([agent, tokens]) => ({ agent, tokens }))
 }
 
 export function RunView({ runId, objective, initialStatus, initialEvents = [] }: RunViewProps) {

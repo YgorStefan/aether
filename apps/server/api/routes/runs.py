@@ -61,10 +61,11 @@ async def create_run(
     emitter.create(run_id)
     hitl_store.create(run_id)
 
+    _persist_sb = create_client(settings.supabase_url, settings.supabase_service_key)
+
     async def _persist_event(event: RunEvent) -> None:
         try:
-            sb = create_client(settings.supabase_url, settings.supabase_service_key)
-            sb.table("run_events").insert({
+            _persist_sb.table("run_events").insert({
                 "run_id": event.run_id,
                 "type": event.type.value,
                 "agent_name": event.agent_name,

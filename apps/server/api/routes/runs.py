@@ -65,13 +65,16 @@ async def create_run(
 
     async def _persist_event(event: RunEvent) -> None:
         try:
-            _persist_sb.table("run_events").insert({
+            row = {
                 "run_id": event.run_id,
                 "type": event.type.value,
                 "agent_name": event.agent_name,
                 "payload": event.payload,
                 "tokens_used": event.tokens_used,
-            }).execute()
+            }
+            await asyncio.to_thread(
+                lambda: _persist_sb.table("run_events").insert(row).execute()
+            )
         except Exception:
             logger.exception("event_persist_failed", run_id=event.run_id, type=event.type.value)
 

@@ -8,10 +8,12 @@ export type RunEventType =
   | 'task_started'
   | 'task_completed'
   | 'skill_called'
+  | 'skill_result'
   | 'hitl_required'
   | 'hitl_resolved'
   | 'run_completed'
   | 'run_failed'
+  | 'run_cancelled'
   | 'budget_warning'
   | 'budget_exceeded'
 

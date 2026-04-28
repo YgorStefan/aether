@@ -5,6 +5,7 @@ from agents.supervisor import TaskPlan
 from agents.worker import DecisionResult, ObserveResult, SkillSelection
 from core.budget import BudgetController
 from core.events import RunEventEmitter
+from core.hitl_store import HitlStore
 from core.llm_adapter import MockLLMAdapter
 from pydantic import BaseModel
 from skills.base import Skill, SkillResult
@@ -58,7 +59,7 @@ async def test_graph_completa_run_com_uma_tarefa():
     e.create("run-1")
     budget = BudgetController(limit_tokens=10000)
     registry = _make_registry()
-    graph = build_graph(adapter=mock, budget=budget, emitter=e, registry=registry)
+    graph = build_graph(adapter=mock, budget=budget, emitter=e, registry=registry, hitl_store=HitlStore())
 
     result = await graph.ainvoke(_initial_state())
 
@@ -81,7 +82,7 @@ async def test_graph_falha_se_budget_excedido():
     state["total_input_tokens"] = 100  # já começa acima do limite
 
     registry = _make_registry()
-    graph = build_graph(adapter=mock, budget=budget, emitter=e, registry=registry)
+    graph = build_graph(adapter=mock, budget=budget, emitter=e, registry=registry, hitl_store=HitlStore())
 
     result = await graph.ainvoke(state)
     assert result["status"] == "failed"

@@ -26,7 +26,8 @@ def _make_state(**overrides) -> AgentState:
 async def test_evaluate_incrementa_indice_quando_done():
     e = RunEventEmitter()
     e.create("run-1")
-    result = await evaluate_result_node(_make_state(), emitter=e)
+    budget = BudgetController(limit_tokens=10000)
+    result = await evaluate_result_node(_make_state(), emitter=e, budget=budget)
     assert result["current_task_index"] == 1
 
 
@@ -34,8 +35,9 @@ async def test_evaluate_incrementa_indice_quando_done():
 async def test_evaluate_marca_failed_quando_tarefa_failed():
     e = RunEventEmitter()
     e.create("run-1")
+    budget = BudgetController(limit_tokens=10000)
     state = _make_state(tasks=[Task(description="T1", status="failed")])
-    result = await evaluate_result_node(state, emitter=e)
+    result = await evaluate_result_node(state, emitter=e, budget=budget)
     assert result["status"] == "failed"
     assert "T1" in result["error"] or "0" in result["error"]
 
@@ -76,7 +78,8 @@ async def test_budget_gate_emite_warning_proximo_do_limite():
 async def test_finalize_emite_run_completed():
     e = RunEventEmitter()
     e.create("run-1")
-    result = await finalize_node(_make_state(), emitter=e)
+    budget = BudgetController(limit_tokens=10000)
+    result = await finalize_node(_make_state(), emitter=e, budget=budget)
     assert result["status"] == "completed"
 
 
@@ -84,6 +87,58 @@ async def test_finalize_emite_run_completed():
 async def test_finalize_emite_run_failed_quando_status_failed():
     e = RunEventEmitter()
     e.create("run-1")
+    budget = BudgetController(limit_tokens=10000)
     state = _make_state(status="failed", error="algo deu errado")
-    result = await finalize_node(state, emitter=e)
+    result = await finalize_node(state, emitter=e, budget=budget)
     assert result["status"] == "failed"
+
+
+@pytest.mark.asyncio
+async def test_budget_gate_emite_budget_exceeded_ao_exceder():
+    e = RunEventEmitter()
+    e.create("run-1")
+    budget = BudgetController(limit_tokens=100)
+    state = _make_state(total_input_tokens=80, total_output_tokens=50)  # 130 > 100
+    result = await budget_gate_node(state, budget=budget, emitter=e)
+    assert result["status"] == "failed"
+    event = e._queues["run-1"].get_nowait()
+    assert event.type == EventType.budget_exceeded
+    assert "cost_usd" in event.payload
+    assert "total_tokens" in event.payload
+
+
+@pytest.mark.asyncio
+async def test_evaluate_inclui_token_totals_no_task_completed():
+    e = RunEventEmitter()
+    e.create("run-1")
+    budget = BudgetController(limit_tokens=10000)
+    state = _make_state(total_input_tokens=200, total_output_tokens=100)
+    await evaluate_result_node(state, emitter=e, budget=budget)
+    event = e._queues["run-1"].get_nowait()
+    assert event.type == EventType.task_completed
+    assert event.agent_name == "worker_0"
+    assert event.tokens_used == 300  # (200 + 100) - task_start_tokens(0)
+    assert event.payload["total_input_tokens"] == 200
+    assert event.payload["total_output_tokens"] == 100
+    assert "cost_usd" in event.payload
+
+
+@pytest.mark.asyncio
+async def test_finalize_inclui_token_totals_no_run_completed():
+    e = RunEventEmitter()
+    e.create("run-1")
+    # Captura referência à fila antes de finalize_node chamar close() (que remove a chave do dict)
+    queue = e._queues["run-1"]
+    budget = BudgetController(limit_tokens=10000)
+    state = _make_state(total_input_tokens=500, total_output_tokens=250)
+    await finalize_node(state, emitter=e, budget=budget)
+    # O evento run_completed é o último antes do None
+    events: list = []
+    while not queue.empty():
+        ev = queue.get_nowait()
+        if ev is not None:
+            events.append(ev)
+    completed = next(ev for ev in events if ev.type == EventType.run_completed)
+    assert completed.payload["total_input_tokens"] == 500
+    assert completed.payload["total_output_tokens"] == 250
+    assert "cost_usd" in completed.payload

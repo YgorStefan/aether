@@ -10,3 +10,11 @@ def test_ready_returns_ok(client):
     data = response.json()
     assert data["status"] in ("ok", "degraded")
     assert "supabase" in data
+
+
+def test_ready_inclui_campo_langsmith(client):
+    response = client.get("/api/v1/ready")
+    assert response.status_code == 200
+    data = response.json()
+    assert "langsmith" in data
+    assert isinstance(data["langsmith"], bool)

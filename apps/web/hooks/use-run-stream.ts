@@ -13,10 +13,13 @@ export type RunEventType =
   | 'run_completed'
   | 'run_failed'
   | 'budget_warning'
+  | 'budget_exceeded'
 
 export type RunEvent = {
   run_id: string
   type: RunEventType
+  agent_name?: string | null
+  tokens_used?: number
   payload: Record<string, unknown>
 }
 
@@ -24,17 +27,24 @@ export type StreamStatus = 'idle' | 'connecting' | 'connected' | 'done' | 'error
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000'
 const MAX_BACKOFF_MS = 30_000
+const TERMINAL_STATUSES = new Set(['completed', 'failed', 'cancelled', 'COMPLETED', 'FAILED', 'CANCELLED'])
 
-export function useRunStream(runId: string | null) {
-  const [events, setEvents] = useState<RunEvent[]>([])
-  const [status, setStatus] = useState<StreamStatus>('idle')
+export function useRunStream(
+  runId: string | null,
+  options: { initialEvents?: RunEvent[]; initialStatus?: string } = {}
+) {
+  const { initialEvents = [], initialStatus = '' } = options
+  const isTerminal = TERMINAL_STATUSES.has(initialStatus)
+
+  const [events, setEvents] = useState<RunEvent[]>(initialEvents)
+  const [status, setStatus] = useState<StreamStatus>(isTerminal ? 'done' : 'idle')
   const [error, setError] = useState<string | null>(null)
   const abortRef = useRef<AbortController | null>(null)
   const retryRef = useRef(0)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
-    if (!runId) return
+    if (!runId || isTerminal) return
 
     retryRef.current = 0
     let cancelled = false
@@ -106,7 +116,7 @@ export function useRunStream(runId: string | null) {
       abortRef.current?.abort()
       if (timerRef.current) clearTimeout(timerRef.current)
     }
-  }, [runId])
+  }, [runId, isTerminal])
 
   return { events, status, error }
 }

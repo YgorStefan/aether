@@ -16,6 +16,8 @@ def _make_state() -> AgentState:
         "total_input_tokens": 0,
         "total_output_tokens": 0,
         "skill_cache": {},
+        "budget_limit": 10000,
+        "task_start_tokens": 0,
     }
 
 
@@ -46,7 +48,10 @@ async def test_supervisor_decompoe_objetivo():
     events = await consumer
     assert len(events) == 1
     assert events[0].type == EventType.agent_started
-    assert events[0].payload == {"agent_name": "supervisor"}
+    assert events[0].agent_name == "supervisor"
+    assert events[0].tokens_used > 0  # emitido após LLM call, reflete custo real
+    assert events[0].payload["budget_limit"] == 10000
+    assert "langsmith_enabled" in events[0].payload
 
 
 @pytest.mark.asyncio

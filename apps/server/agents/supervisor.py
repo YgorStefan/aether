@@ -1,3 +1,5 @@
+import functools
+
 from pydantic import BaseModel
 
 from agents.state import AgentState, Task
@@ -14,13 +16,8 @@ async def supervisor_node(
     *,
     adapter: BaseLLMAdapter,
     emitter: RunEventEmitter,
+    langsmith_enabled: bool = False,
 ) -> dict:
-    await emitter.emit(RunEvent(
-        run_id=state["run_id"],
-        type=EventType.agent_started,
-        payload={"agent_name": "supervisor"},
-    ))
-
     prompt = (
         f"Você é um agente supervisor. Decomponha este objetivo em 2 a 4 tarefas concretas.\n"
         f"Objetivo: {state['objective']}\n\n"
@@ -32,6 +29,18 @@ async def supervisor_node(
         try:
             plan, input_tokens, output_tokens = await adapter.generate(prompt, TaskPlan, state)
             tasks = [Task(description=desc) for desc in plan.tasks]
+            # Emite APÓS a chamada LLM para que tokens_used reflita o custo real
+            await emitter.emit(RunEvent(
+                run_id=state["run_id"],
+                type=EventType.agent_started,
+                agent_name="supervisor",
+                tokens_used=input_tokens + output_tokens,
+                payload={
+                    "agent_name": "supervisor",
+                    "budget_limit": state["budget_limit"],
+                    "langsmith_enabled": langsmith_enabled,
+                },
+            ))
             return {
                 "tasks": tasks,
                 "current_task_index": 0,

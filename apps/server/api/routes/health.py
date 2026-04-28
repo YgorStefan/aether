@@ -20,5 +20,7 @@ async def ready():
     except Exception:
         pass
 
+    langsmith_ok = bool(settings.langsmith_api_key)
+
     status = "ok" if supabase_ok else "degraded"
-    return {"status": status, "supabase": supabase_ok}
+    return {"status": status, "supabase": supabase_ok, "langsmith": langsmith_ok}

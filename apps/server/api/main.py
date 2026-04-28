@@ -1,3 +1,5 @@
+import os
+
 from fastapi import FastAPI
 
 from api.middleware.cors import add_cors_middleware
@@ -9,6 +11,11 @@ from core.logging import configure_logging
 
 def create_app() -> FastAPI:
     configure_logging(settings.log_level)
+
+    if settings.langsmith_api_key:
+        os.environ.setdefault("LANGCHAIN_TRACING_V2", "true")
+        os.environ.setdefault("LANGCHAIN_API_KEY", settings.langsmith_api_key)
+        os.environ.setdefault("LANGCHAIN_PROJECT", settings.langsmith_project)
 
     app = FastAPI(title="Aether API", version="1.0.0")
     add_cors_middleware(app)

@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     e2b_api_key: str = ""
 
     frontend_url: str = "http://localhost:3000"
+    extra_cors_origins: list[str] = []
     default_budget_limit: int = 10000
     max_requests_per_minute: int = 20
     log_level: str = "INFO"

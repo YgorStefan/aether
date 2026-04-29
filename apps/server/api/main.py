@@ -24,6 +24,10 @@ def create_app() -> FastAPI:
     app.include_router(runs.router, prefix="/api/v1")
     app.include_router(skills.router, prefix="/api/v1")
 
+    if settings.mcp_api_key:
+        from api.routes.mcp import get_mcp_asgi_app
+        app.mount("/mcp", get_mcp_asgi_app())
+
     return app
 
 

@@ -48,10 +48,14 @@ class MockLLMAdapter(BaseLLMAdapter):
 
 class GeminiAdapter(BaseLLMAdapter):
     def __init__(self, api_key: str, model: str = "gemini-2.0-flash") -> None:
-        from langchain_google_genai import ChatGoogleGenerativeAI
+        from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
 
         self._api_key = api_key
         self._llm = ChatGoogleGenerativeAI(model=model, google_api_key=api_key)
+        self._embedder = GoogleGenerativeAIEmbeddings(
+            model="models/text-embedding-004",
+            google_api_key=api_key,
+        )
 
     async def generate(
         self,
@@ -69,10 +73,4 @@ class GeminiAdapter(BaseLLMAdapter):
         return parsed, input_tokens, output_tokens
 
     async def embed(self, text: str) -> list[float]:
-        from langchain_google_genai import GoogleGenerativeAIEmbeddings
-
-        embedder = GoogleGenerativeAIEmbeddings(
-            model="models/text-embedding-004",
-            google_api_key=self._api_key,
-        )
-        return await embedder.aembed_query(text)
+        return await self._embedder.aembed_query(text)

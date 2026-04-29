@@ -48,3 +48,12 @@ async def test_mock_adapter_levanta_se_fila_vazia():
     mock = MockLLMAdapter()
     with pytest.raises(ValueError, match="_Answer"):
         await mock.generate("p", _Answer, _make_state())
+
+
+@pytest.mark.asyncio
+async def test_mock_adapter_embed_retorna_768_dims():
+    mock = MockLLMAdapter()
+    result = await mock.embed("texto de teste")
+    assert isinstance(result, list)
+    assert len(result) == 768
+    assert all(isinstance(v, float) for v in result)

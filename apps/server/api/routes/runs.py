@@ -18,7 +18,9 @@ from core.config import settings
 from core.events import EventType, RunEvent, emitter
 from core.hitl_store import hitl_store
 from core.llm_adapter import GeminiAdapter
+from core.memory import MemoryRepository
 from core.security import InjectionDetected, check_prompt
+from skills.memory_recall import MemoryRecall
 
 logger = structlog.get_logger()
 
@@ -82,6 +84,7 @@ async def create_run(
 
     initial_state: AgentState = {
         "run_id": run_id,
+        "user_id": user["sub"],
         "objective": body.objective,
         "tasks": [],
         "current_task_index": 0,
@@ -92,15 +95,31 @@ async def create_run(
         "skill_cache": {},
         "budget_limit": settings.default_budget_limit,
         "task_start_tokens": 0,
+        "memory_context": "",
     }
 
     async def _run() -> None:
         try:
             adapter = GeminiAdapter(api_key=settings.gemini_api_key)
             budget = BudgetController(limit_tokens=settings.default_budget_limit)
+            memory_repo = MemoryRepository(
+                url=settings.supabase_url,
+                service_key=settings.supabase_service_key,
+                threshold=settings.memory_similarity_threshold,
+            )
+
+            run_registry = registry.clone()
+            memory_skill = MemoryRecall(
+                memory_repo=memory_repo,
+                user_id=user["sub"],
+                adapter=adapter,
+            )
+            run_registry.register(memory_skill)
+
             graph = build_graph(
                 adapter=adapter, budget=budget, emitter=emitter,
-                registry=registry, hitl_store=hitl_store,
+                registry=run_registry, hitl_store=hitl_store,
+                memory_repo=memory_repo,
                 langsmith_enabled=bool(settings.langsmith_api_key),
             )
             final_state = await graph.ainvoke(initial_state)

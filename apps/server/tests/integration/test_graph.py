@@ -7,6 +7,7 @@ from core.budget import BudgetController
 from core.events import RunEventEmitter
 from core.hitl_store import HitlStore
 from core.llm_adapter import MockLLMAdapter
+from core.memory import MockMemoryRepository
 from pydantic import BaseModel
 from skills.base import Skill, SkillResult
 from skills.registry import SkillRegistry
@@ -35,6 +36,7 @@ def _make_registry() -> SkillRegistry:
 def _initial_state(run_id: str = "run-1") -> AgentState:
     return {
         "run_id": run_id,
+        "user_id": "user-test",
         "objective": "Objetivo simples",
         "tasks": [],
         "current_task_index": 0,
@@ -45,6 +47,7 @@ def _initial_state(run_id: str = "run-1") -> AgentState:
         "skill_cache": {},
         "budget_limit": 10000,
         "task_start_tokens": 0,
+        "memory_context": "",
     }
 
 
@@ -61,7 +64,7 @@ async def test_graph_completa_run_com_uma_tarefa():
     e.create("run-1")
     budget = BudgetController(limit_tokens=10000)
     registry = _make_registry()
-    graph = build_graph(adapter=mock, budget=budget, emitter=e, registry=registry, hitl_store=HitlStore())
+    graph = build_graph(adapter=mock, budget=budget, emitter=e, registry=registry, hitl_store=HitlStore(), memory_repo=MockMemoryRepository())
 
     result = await graph.ainvoke(_initial_state())
 
@@ -84,7 +87,7 @@ async def test_graph_falha_se_budget_excedido():
     state["total_input_tokens"] = 100  # já começa acima do limite
 
     registry = _make_registry()
-    graph = build_graph(adapter=mock, budget=budget, emitter=e, registry=registry, hitl_store=HitlStore())
+    graph = build_graph(adapter=mock, budget=budget, emitter=e, registry=registry, hitl_store=HitlStore(), memory_repo=MockMemoryRepository())
 
     result = await graph.ainvoke(state)
     assert result["status"] == "failed"

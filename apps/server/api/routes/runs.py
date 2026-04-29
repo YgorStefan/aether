@@ -100,7 +100,27 @@ async def create_run(
 
     async def _run() -> None:
         try:
-            adapter = GeminiAdapter(api_key=settings.gemini_api_key)
+            sb_keys = create_client(settings.supabase_url, settings.supabase_service_key)
+            key_result = await asyncio.to_thread(
+                lambda: sb_keys.table("user_settings")
+                .select("provider, api_key")
+                .eq("user_id", user["sub"])
+                .execute()
+            )
+            if not key_result.data:
+                await emitter.emit(RunEvent(
+                    run_id=run_id,
+                    type=EventType.run_failed,
+                    payload={"error": "Configure sua API key nas configurações antes de criar um run."},
+                ))
+                supabase.table("runs").update({"status": "FAILED"}).eq("id", run_id).execute()
+                return
+
+            key_row = key_result.data[0]
+            if key_row["provider"] == "gemini":
+                adapter = GeminiAdapter(api_key=key_row["api_key"])
+            else:
+                raise ValueError(f"Provider não suportado: {key_row['provider']}")
             budget = BudgetController(limit_tokens=settings.default_budget_limit)
             memory_repo = MemoryRepository(
                 url=settings.supabase_url,

@@ -15,3 +15,4 @@ slowapi>=0.1.9
 tavily-python>=0.3.0
 e2b-code-interpreter>=0.0.10
 pendulum>=3.0.0
+fastmcp>=2.0.0

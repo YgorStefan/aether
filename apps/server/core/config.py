@@ -20,5 +20,8 @@ class Settings(BaseSettings):
     max_requests_per_minute: int = 20
     log_level: str = "INFO"
 
+    memory_similarity_threshold: float = 0.7  # limiar para busca cosine no pgvector
+    mcp_api_key: str = ""                      # se vazio, MCP Server não é montado
+
 
 settings = Settings()

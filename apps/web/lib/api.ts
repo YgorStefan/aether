@@ -61,5 +61,28 @@ export async function getRunEvents(runId: string): Promise<RunEvent[]> {
   return res.json()
 }
 
+export type UserSettings = {
+  provider: 'gemini' | null
+  api_key_set: boolean
+  api_key_masked: string | null
+}
+
+export async function getSettings(): Promise<UserSettings> {
+  const headers = await authHeaders()
+  const res = await fetch(`${API_URL}/api/v1/settings`, { headers })
+  if (!res.ok) throw new Error(await res.text())
+  return res.json()
+}
+
+export async function updateSettings(provider: 'gemini', api_key: string): Promise<void> {
+  const headers = await authHeaders()
+  const res = await fetch(`${API_URL}/api/v1/settings`, {
+    method: 'PUT',
+    headers: { ...headers, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ provider, api_key }),
+  })
+  if (!res.ok) throw new Error(await res.text())
+}
+
 // Re-export RunEvent type alinhado com o hook
 export type { RunEvent } from '@/hooks/use-run-stream'

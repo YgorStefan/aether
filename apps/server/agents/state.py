@@ -11,13 +11,15 @@ class Task(BaseModel):
 
 class AgentState(TypedDict):
     run_id: str
+    user_id: str           # ID do usuário autenticado (para filtro RLS de memória)
     objective: str
     tasks: list[Task]
     current_task_index: int
-    status: str   # running | completed | failed
+    status: str            # running | completed | failed
     error: str
     total_input_tokens: int
     total_output_tokens: int
-    skill_cache: dict  # key: "{skill_name}:{sha256_params_hex[:16]}" → output str
+    skill_cache: dict      # key: "{skill_name}:{sha256_params_hex[:16]}" → output str
     budget_limit: int
-    task_start_tokens: int  # snapshot de tokens ao início de cada tarefa, para calcular delta por worker
+    task_start_tokens: int # snapshot de tokens ao início de cada tarefa
+    memory_context: str    # texto de memórias relevantes injetado pelo supervisor

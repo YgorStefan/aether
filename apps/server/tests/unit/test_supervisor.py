@@ -8,6 +8,7 @@ from core.llm_adapter import MockLLMAdapter
 def _make_state() -> AgentState:
     return {
         "run_id": "run-1",
+        "user_id": "user-1",
         "objective": "Construir um blog",
         "tasks": [],
         "current_task_index": 0,
@@ -18,6 +19,7 @@ def _make_state() -> AgentState:
         "skill_cache": {},
         "budget_limit": 10000,
         "task_start_tokens": 0,
+        "memory_context": "",
     }
 
 

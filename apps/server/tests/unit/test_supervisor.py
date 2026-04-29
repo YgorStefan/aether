@@ -3,6 +3,7 @@ from agents.state import AgentState, Task
 from agents.supervisor import TaskPlan, supervisor_node
 from core.events import EventType, RunEventEmitter
 from core.llm_adapter import MockLLMAdapter
+from core.memory import MockMemoryRepository
 
 
 def _make_state() -> AgentState:
@@ -30,7 +31,9 @@ async def test_supervisor_decompoe_objetivo():
     e = RunEventEmitter()
     e.create("run-1")
 
-    result = await supervisor_node(_make_state(), adapter=mock, emitter=e)
+    result = await supervisor_node(
+        _make_state(), adapter=mock, emitter=e, memory_repo=MockMemoryRepository()
+    )
 
     assert len(result["tasks"]) == 2
     assert result["tasks"][0].description == "Criar estrutura"
@@ -64,7 +67,53 @@ async def test_supervisor_falha_apos_3_tentativas():
 
     e = RunEventEmitter()
     e.create("run-1")
-    result = await supervisor_node(_make_state(), adapter=BrokenAdapter(), emitter=e)
+    result = await supervisor_node(
+        _make_state(), adapter=BrokenAdapter(), emitter=e, memory_repo=MockMemoryRepository()
+    )
 
     assert result["status"] == "failed"
     assert "LLM timeout" in result["error"]
+
+
+@pytest.mark.asyncio
+async def test_supervisor_sem_memorias_funciona_normalmente():
+    mock = MockLLMAdapter()
+    mock.enqueue(TaskPlan, TaskPlan(tasks=["Criar estrutura", "Escrever conteúdo"]))
+    e = RunEventEmitter()
+    e.create("run-1")
+    memory_repo = MockMemoryRepository()
+
+    result = await supervisor_node(_make_state(), adapter=mock, emitter=e, memory_repo=memory_repo)
+
+    assert len(result["tasks"]) == 2
+
+
+@pytest.mark.asyncio
+async def test_supervisor_com_memorias_adiciona_contexto():
+    mock = MockLLMAdapter()
+    mock.enqueue(TaskPlan, TaskPlan(tasks=["Criar estrutura"]))
+    e = RunEventEmitter()
+    e.create("run-1")
+    memory_repo = MockMemoryRepository(memories=["Run anterior: blog criado com sucesso usando FastAPI"])
+
+    result = await supervisor_node(_make_state(), adapter=mock, emitter=e, memory_repo=memory_repo)
+
+    assert len(result["tasks"]) == 1
+    assert result["memory_context"] == "- Run anterior: blog criado com sucesso usando FastAPI"
+
+
+@pytest.mark.asyncio
+async def test_supervisor_continua_mesmo_se_memoria_falhar():
+    mock = MockLLMAdapter()
+    mock.enqueue(TaskPlan, TaskPlan(tasks=["Criar estrutura"]))
+    e = RunEventEmitter()
+    e.create("run-1")
+
+    class FailingRepo(MockMemoryRepository):
+        async def search(self, *args, **kwargs):
+            raise RuntimeError("pgvector offline")
+
+    result = await supervisor_node(_make_state(), adapter=mock, emitter=e, memory_repo=FailingRepo())
+
+    assert len(result["tasks"]) == 1
+    assert result.get("status") != "failed"

@@ -54,7 +54,7 @@ export default function SettingsPage() {
           <p className="text-sm font-medium text-[var(--color-text-secondary)]">Provider</p>
           <div className="mt-2 flex items-center gap-2 rounded-lg border border-[var(--color-card-border)] bg-[var(--color-background)] px-3 py-2">
             <span className="text-sm text-[var(--color-text-primary)]">Gemini (Google)</span>
-            <span className="ml-auto text-xs text-[var(--color-text-muted)]">gemini-2.0-flash</span>
+            <span className="ml-auto text-xs text-[var(--color-text-muted)]">gemini-2.5-flash</span>
           </div>
         </div>
 

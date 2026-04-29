@@ -1,3 +1,4 @@
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -17,6 +18,19 @@ class Settings(BaseSettings):
 
     frontend_url: str = "http://localhost:3000"
     extra_cors_origins: list[str] = []
+
+    @field_validator("extra_cors_origins", mode="before")
+    @classmethod
+    def parse_origins(cls, v: object) -> list[str]:
+        if isinstance(v, list):
+            return v
+        if not v or not str(v).strip():
+            return []
+        import json
+        try:
+            return json.loads(str(v))
+        except Exception:
+            return [s.strip() for s in str(v).split(",") if s.strip()]
     default_budget_limit: int = 10000
     max_requests_per_minute: int = 20
     log_level: str = "INFO"

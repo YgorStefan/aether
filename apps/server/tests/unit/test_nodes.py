@@ -8,6 +8,7 @@ from core.events import EventType, RunEventEmitter
 def _make_state(**overrides) -> AgentState:
     base: AgentState = {
         "run_id": "run-1",
+        "user_id": "user-1",
         "objective": "test",
         "tasks": [Task(description="T1", status="done")],
         "current_task_index": 0,
@@ -18,6 +19,7 @@ def _make_state(**overrides) -> AgentState:
         "skill_cache": {},
         "budget_limit": 10000,
         "task_start_tokens": 0,
+        "memory_context": "",
     }
     return {**base, **overrides}
 

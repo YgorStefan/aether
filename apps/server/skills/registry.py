@@ -26,6 +26,11 @@ class SkillRegistry:
     def skill_names(self) -> list[str]:
         return list(self._skills.keys())
 
+    def clone(self) -> "SkillRegistry":
+        new_registry = SkillRegistry()
+        new_registry._skills = dict(self._skills)
+        return new_registry
+
     @classmethod
     def autodiscover(cls, skills_dir: Path) -> "SkillRegistry":
         registry = cls()

@@ -10,6 +10,7 @@ from core.budget import BudgetController
 from core.events import RunEventEmitter
 from core.hitl_store import HitlStore
 from core.llm_adapter import BaseLLMAdapter
+from core.memory import BaseMemoryRepository
 from skills.registry import SkillRegistry
 
 
@@ -20,18 +21,26 @@ def build_graph(
     emitter: RunEventEmitter,
     registry: SkillRegistry,
     hitl_store: HitlStore,
+    memory_repo: BaseMemoryRepository,
     langsmith_enabled: bool = False,
 ):
     supervisor_fn = functools.partial(
-        supervisor_node, adapter=adapter, emitter=emitter, langsmith_enabled=langsmith_enabled
+        supervisor_node,
+        adapter=adapter,
+        emitter=emitter,
+        memory_repo=memory_repo,
+        langsmith_enabled=langsmith_enabled,
     )
     budget_fn = functools.partial(budget_gate_node, budget=budget, emitter=emitter)
     worker_fn = functools.partial(
         worker_node, adapter=adapter, emitter=emitter,
-        registry=registry, hitl_store=hitl_store
+        registry=registry, hitl_store=hitl_store,
     )
     evaluate_fn = functools.partial(evaluate_result_node, emitter=emitter, budget=budget)
-    finalize_fn = functools.partial(finalize_node, emitter=emitter, budget=budget)
+    finalize_fn = functools.partial(
+        finalize_node, emitter=emitter, budget=budget,
+        adapter=adapter, memory_repo=memory_repo,
+    )
 
     workflow = StateGraph(AgentState)
     workflow.add_node("supervisor", supervisor_fn)

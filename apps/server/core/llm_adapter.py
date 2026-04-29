@@ -16,6 +16,11 @@ class BaseLLMAdapter(ABC):
         """Retorna (resposta, input_tokens, output_tokens)."""
         ...
 
+    @abstractmethod
+    async def embed(self, text: str) -> list[float]:
+        """Retorna embedding de 768 dimensões."""
+        ...
+
 
 class MockLLMAdapter(BaseLLMAdapter):
     def __init__(self) -> None:
@@ -37,11 +42,15 @@ class MockLLMAdapter(BaseLLMAdapter):
             raise ValueError(f"Nenhuma resposta mock enfileirada para {response_model.__name__}")
         return responses.pop(0), 100, 50
 
+    async def embed(self, text: str) -> list[float]:
+        return [0.1] * 768
+
 
 class GeminiAdapter(BaseLLMAdapter):
     def __init__(self, api_key: str, model: str = "gemini-2.0-flash") -> None:
         from langchain_google_genai import ChatGoogleGenerativeAI
 
+        self._api_key = api_key
         self._llm = ChatGoogleGenerativeAI(model=model, google_api_key=api_key)
 
     async def generate(
@@ -58,3 +67,12 @@ class GeminiAdapter(BaseLLMAdapter):
         input_tokens = usage.get("input_tokens", 0)
         output_tokens = usage.get("output_tokens", 0)
         return parsed, input_tokens, output_tokens
+
+    async def embed(self, text: str) -> list[float]:
+        from langchain_google_genai import GoogleGenerativeAIEmbeddings
+
+        embedder = GoogleGenerativeAIEmbeddings(
+            model="models/text-embedding-004",
+            google_api_key=self._api_key,
+        )
+        return await embedder.aembed_query(text)

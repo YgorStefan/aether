@@ -1,6 +1,8 @@
 # ── Ferramentas locais / Claude / Superpowers ──────────────────────────────
 .planning/
 .superpowers/
+CLAUDE.md
+AGENTS.md
 .worktrees/
 Ideia/
 docs/

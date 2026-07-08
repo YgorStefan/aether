@@ -2,7 +2,8 @@ import asyncio
 from abc import ABC, abstractmethod
 
 import structlog
-from supabase import create_client
+
+from core.supabase_client import get_service_client
 
 logger = structlog.get_logger()
 
@@ -20,14 +21,13 @@ class BaseMemoryRepository(ABC):
 
 
 class MemoryRepository(BaseMemoryRepository):
-    def __init__(self, url: str, service_key: str, threshold: float = 0.7) -> None:
-        self._url = url
-        self._service_key = service_key
+    def __init__(self, threshold: float = 0.7) -> None:
+        self._client = get_service_client()
         self._threshold = threshold
 
     async def search(self, user_id: str, embedding: list[float], top_k: int = 5) -> list[str]:
         try:
-            client = create_client(self._url, self._service_key)
+            client = self._client
             result = await asyncio.to_thread(
                 lambda: client.rpc(
                     "match_memories",
@@ -45,7 +45,7 @@ class MemoryRepository(BaseMemoryRepository):
             return []
 
     async def insert(self, user_id: str, run_id: str, content: str, embedding: list[float]) -> None:
-        client = create_client(self._url, self._service_key)
+        client = self._client
         await asyncio.to_thread(
             lambda: client.table("memories").insert({
                 "user_id": user_id,

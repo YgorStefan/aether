@@ -20,7 +20,7 @@ def test_get_events_retorna_lista(client):
          "agent_name": "supervisor", "payload": {}, "tokens_used": 0}
     ]
 
-    with patch("api.routes.runs.create_client") as mock_supabase:
+    with patch("api.routes.runs.get_service_client") as mock_supabase:
         mock_table = MagicMock()
         # Primeira chamada: verificar ownership do run
         mock_table.select.return_value.eq.return_value.eq.return_value.execute.return_value \
@@ -38,7 +38,7 @@ def test_get_events_retorna_lista(client):
 
 
 def test_get_events_retorna_404_se_run_nao_pertence_ao_usuario(client):
-    with patch("api.routes.runs.create_client") as mock_supabase:
+    with patch("api.routes.runs.get_service_client") as mock_supabase:
         mock_table = MagicMock()
         mock_table.select.return_value.eq.return_value.eq.return_value.execute.return_value \
             = MagicMock(data=[])

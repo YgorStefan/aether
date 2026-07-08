@@ -2,10 +2,10 @@ interface SkeletonProps {
   className?: string
 }
 
-export function Skeleton({ className }: SkeletonProps) {
+export function Skeleton({ className }: Readonly<SkeletonProps>) {
   return (
     <div
-      className={`animate-pulse rounded-md bg-[var(--color-card-border)] ${className ?? ''}`}
+      className={`animate-pulse rounded-md bg-card-border ${className ?? ''}`}
     />
   )
 }

@@ -36,7 +36,7 @@ class _MockHitlStore:
     def __init__(self, decision: str = "approve") -> None:
         self._decision = decision
 
-    async def wait_for_decision(self, run_id: str) -> str:
+    async def wait_for_decision(self, run_id: str, timeout: float | None = None) -> str:
         return self._decision
 
     def cleanup(self, run_id: str) -> None:
@@ -173,3 +173,109 @@ async def test_worker_marca_failed_quando_nao_completo():
     )
 
     assert result["tasks"][0].status == "failed"
+
+
+class _FailingSkill(Skill):
+    name = "failing_skill"
+    description = "Skill que sempre falha"
+    parameters = _MockParams
+    requires_approval = False
+
+    async def execute(self, params: BaseModel) -> SkillResult:
+        return SkillResult(success=False, output="", error="serviço externo indisponível")
+
+
+class _CrashingSkill(Skill):
+    name = "crashing_skill"
+    description = "Skill que levanta exceção"
+    parameters = _MockParams
+    requires_approval = False
+
+    async def execute(self, params: BaseModel) -> SkillResult:
+        raise RuntimeError("boom")
+
+
+@pytest.mark.asyncio
+async def test_worker_marca_failed_quando_skill_desconhecida():
+    mock = MockLLMAdapter()
+    mock.enqueue(SkillSelection, SkillSelection(skill_name="skill_inexistente", rationale="r"))
+
+    e = RunEventEmitter()
+    e.create("run-1")
+    result = await worker_node(
+        _make_state(), adapter=mock, emitter=e,
+        registry=_make_registry(), hitl_store=_MockHitlStore()
+    )
+
+    assert result["tasks"][0].status == "failed"
+    assert "não encontrada" in result["tasks"][0].result.lower()
+
+
+@pytest.mark.asyncio
+async def test_worker_marca_failed_quando_llm_lanca_excecao():
+    class _RaisingAdapter(MockLLMAdapter):
+        async def generate(self, prompt, response_model, state):
+            raise RuntimeError("LLM indisponível")
+
+    e = RunEventEmitter()
+    e.create("run-1")
+    result = await worker_node(
+        _make_state(), adapter=_RaisingAdapter(), emitter=e,
+        registry=_make_registry(), hitl_store=_MockHitlStore()
+    )
+
+    assert result["tasks"][0].status == "failed"
+    assert "selecionar skill" in result["tasks"][0].result.lower()
+
+
+@pytest.mark.asyncio
+async def test_worker_marca_failed_quando_skill_result_success_false():
+    mock = MockLLMAdapter()
+    mock.enqueue(SkillSelection, SkillSelection(skill_name="failing_skill", rationale="r"))
+    mock.enqueue(_MockParams, _MockParams(value="x"))
+
+    e = RunEventEmitter()
+    e.create("run-1")
+    result = await worker_node(
+        _make_state(), adapter=mock, emitter=e,
+        registry=_make_registry(_FailingSkill()), hitl_store=_MockHitlStore()
+    )
+
+    assert result["tasks"][0].status == "failed"
+    assert "serviço externo indisponível" in result["tasks"][0].result
+
+
+@pytest.mark.asyncio
+async def test_worker_marca_failed_quando_skill_execute_lanca_excecao():
+    mock = MockLLMAdapter()
+    mock.enqueue(SkillSelection, SkillSelection(skill_name="crashing_skill", rationale="r"))
+    mock.enqueue(_MockParams, _MockParams(value="x"))
+
+    e = RunEventEmitter()
+    e.create("run-1")
+    result = await worker_node(
+        _make_state(), adapter=mock, emitter=e,
+        registry=_make_registry(_CrashingSkill()), hitl_store=_MockHitlStore()
+    )
+
+    assert result["tasks"][0].status == "failed"
+    assert "boom" in result["tasks"][0].result
+
+
+@pytest.mark.asyncio
+async def test_worker_falha_quando_hitl_expira():
+    registry = _make_registry(_ApprovalSkill())
+
+    mock = MockLLMAdapter()
+    mock.enqueue(SkillSelection, SkillSelection(skill_name="approval_skill", rationale="r"))
+    mock.enqueue(_MockParams, _MockParams(value="x"))
+
+    e = RunEventEmitter()
+    e.create("run-1")
+    result = await worker_node(
+        _make_state(), adapter=mock, emitter=e,
+        registry=registry, hitl_store=_MockHitlStore(decision="timeout")
+    )
+
+    assert result["tasks"][0].status == "failed"
+    assert "expirou" in result["tasks"][0].result.lower()

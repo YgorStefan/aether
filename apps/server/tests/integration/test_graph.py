@@ -75,6 +75,56 @@ async def test_graph_completa_run_com_uma_tarefa():
 
 
 @pytest.mark.asyncio
+async def test_graph_completa_run_com_multiplas_tarefas():
+    mock = MockLLMAdapter()
+    mock.enqueue(TaskPlan, TaskPlan(tasks=["Tarefa 1", "Tarefa 2", "Tarefa 3"]))
+    for i in range(3):
+        mock.enqueue(SkillSelection, SkillSelection(skill_name="mock_skill", rationale="OK"))
+        mock.enqueue(_MockParams, _MockParams(value=f"tarefa-{i}"))
+        mock.enqueue(ObserveResult, ObserveResult(observations="Funcionou"))
+        mock.enqueue(DecisionResult, DecisionResult(is_complete=True, result=f"Pronto {i}"))
+
+    e = RunEventEmitter()
+    e.create("run-1")
+    budget = BudgetController(limit_tokens=10000)
+    registry = _make_registry()
+    graph = build_graph(adapter=mock, budget=budget, emitter=e, registry=registry, hitl_store=HitlStore(), memory_repo=MockMemoryRepository())
+
+    result = await graph.ainvoke(_initial_state())
+
+    assert result["status"] == "completed"
+    assert len(result["tasks"]) == 3
+    assert all(t.status == "done" for t in result["tasks"])
+    assert [t.result for t in result["tasks"]] == ["Pronto 0", "Pronto 1", "Pronto 2"]
+    assert result["current_task_index"] == 3
+
+
+@pytest.mark.asyncio
+async def test_graph_para_no_meio_quando_uma_tarefa_falha():
+    mock = MockLLMAdapter()
+    mock.enqueue(TaskPlan, TaskPlan(tasks=["Tarefa 1", "Tarefa 2"]))
+    # Tarefa 1: sucesso
+    mock.enqueue(SkillSelection, SkillSelection(skill_name="mock_skill", rationale="OK"))
+    mock.enqueue(_MockParams, _MockParams(value="t1"))
+    mock.enqueue(ObserveResult, ObserveResult(observations="Funcionou"))
+    mock.enqueue(DecisionResult, DecisionResult(is_complete=True, result="Pronto 1"))
+    # Tarefa 2: skill inexistente -> falha
+    mock.enqueue(SkillSelection, SkillSelection(skill_name="skill_que_nao_existe", rationale="oops"))
+
+    e = RunEventEmitter()
+    e.create("run-1")
+    budget = BudgetController(limit_tokens=10000)
+    registry = _make_registry()
+    graph = build_graph(adapter=mock, budget=budget, emitter=e, registry=registry, hitl_store=HitlStore(), memory_repo=MockMemoryRepository())
+
+    result = await graph.ainvoke(_initial_state())
+
+    assert result["status"] == "failed"
+    assert result["tasks"][0].status == "done"
+    assert result["tasks"][1].status == "failed"
+
+
+@pytest.mark.asyncio
 async def test_graph_falha_se_budget_excedido():
     mock = MockLLMAdapter()
     mock.enqueue(TaskPlan, TaskPlan(tasks=["T1"]))

@@ -8,14 +8,14 @@ interface ChatInputProps {
   disabled?: boolean
 }
 
-export function ChatInput({ onSubmit, onCancel, disabled = false }: ChatInputProps) {
+export function ChatInput({ onSubmit, onCancel, disabled = false }: Readonly<ChatInputProps>) {
   const [value, setValue] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   const canSubmit = value.trim().length >= 10 && !submitting && !disabled
 
-  async function handleSubmit(e?: React.FormEvent) {
+  async function handleSubmit(e?: React.SyntheticEvent<HTMLFormElement>) {
     e?.preventDefault()
     if (!canSubmit) return
     const objective = value.trim()
@@ -48,16 +48,16 @@ export function ChatInput({ onSubmit, onCancel, disabled = false }: ChatInputPro
         placeholder="Descreva seu objetivo… (mín. 10 caracteres)"
         rows={3}
         disabled={submitting || disabled}
-        className="w-full resize-none rounded-lg border border-[var(--color-card-border)] bg-[var(--color-card)] px-4 py-3 text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-primary)] disabled:opacity-50 min-h-[44px]"
+        className="w-full resize-none rounded-lg border border-card-border bg-card px-4 py-3 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-primary disabled:opacity-50 min-h-[44px]"
       />
       <div className="flex items-center justify-between">
-        <span className="text-xs text-[var(--color-text-muted)]">
+        <span className="text-xs text-text-muted">
           {value.length}/500 · Cmd+Enter para enviar
         </span>
         <button
           type="submit"
           disabled={!canSubmit}
-          className="px-4 py-2 rounded-lg bg-[var(--color-primary)] text-white text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed hover:bg-purple-400 transition-colors min-h-[44px]"
+          className="px-4 py-2 rounded-lg bg-primary text-white text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed hover:bg-purple-400 transition-colors min-h-[44px]"
         >
           {submitting ? 'Enviando…' : 'Executar'}
         </button>

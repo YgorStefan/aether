@@ -41,7 +41,8 @@ async def evaluate_result_node(
 
     if task.status == "done":
         return {"current_task_index": idx + 1}
-    return {"status": "failed", "error": f"Tarefa {idx} ({task.description}) falhou"}
+    reason = task.result or f"Tarefa {idx} ({task.description}) falhou"
+    return {"status": "failed", "error": reason}
 
 
 async def budget_gate_node(

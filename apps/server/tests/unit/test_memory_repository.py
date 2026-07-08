@@ -42,8 +42,8 @@ async def test_memory_repository_search_chama_rpc_supabase():
         data=[{"content": "Resultado anterior sobre Python"}]
     )
 
-    with patch("core.memory.create_client", return_value=mock_client):
-        repo = MemoryRepository(url="http://test", service_key="key", threshold=0.7)
+    with patch("core.memory.get_service_client", return_value=mock_client):
+        repo = MemoryRepository(threshold=0.7)
         results = await repo.search("user-1", [0.1] * 768, top_k=5)
 
     mock_client.rpc.assert_called_once_with(
@@ -63,8 +63,8 @@ async def test_memory_repository_insert_chama_supabase():
     mock_client = MagicMock()
     mock_client.table.return_value.insert.return_value.execute.return_value = MagicMock(data=[{}])
 
-    with patch("core.memory.create_client", return_value=mock_client):
-        repo = MemoryRepository(url="http://test", service_key="key", threshold=0.7)
+    with patch("core.memory.get_service_client", return_value=mock_client):
+        repo = MemoryRepository(threshold=0.7)
         await repo.insert("user-1", "run-abc", "Aprendi sobre FastAPI", [0.1] * 768)
 
     mock_client.table.assert_called_once_with("memories")
@@ -81,8 +81,8 @@ async def test_memory_repository_search_retorna_vazio_se_rpc_falhar():
     mock_client = MagicMock()
     mock_client.rpc.side_effect = RuntimeError("connection error")
 
-    with patch("core.memory.create_client", return_value=mock_client):
-        repo = MemoryRepository(url="http://test", service_key="key", threshold=0.7)
+    with patch("core.memory.get_service_client", return_value=mock_client):
+        repo = MemoryRepository(threshold=0.7)
         results = await repo.search("user-1", [0.1] * 768)
 
     assert results == []

@@ -41,16 +41,65 @@ function eventToMarkdown(event: RunEvent): string {
   }
 }
 
-export function MessageList({ events }: { events: RunEvent[] }) {
+function eventKey(event: RunEvent): string {
+  return `${event.run_id}-${event.type}-${event.agent_name ?? ''}-${event.tokens_used ?? ''}-${JSON.stringify(event.payload)}`
+}
+
+function useHighlighter(): Highlighter | null {
   const [highlighter, setHighlighter] = useState<Highlighter | null>(null)
 
   useEffect(() => {
     getHighlighter().then(setHighlighter).catch(() => null)
   }, [])
 
+  return highlighter
+}
+
+function childrenToText(children: React.ReactNode): string {
+  const raw = Array.isArray(children) ? children.join('') : children
+  return typeof raw === 'string' ? raw.trim() : ''
+}
+
+function MarkdownParagraph({ children }: Readonly<{ children?: React.ReactNode }>) {
+  return <p className="mb-2 last:mb-0">{children}</p>
+}
+
+function MarkdownStrong({ children }: Readonly<{ children?: React.ReactNode }>) {
+  return <strong className="font-semibold text-text-primary">{children}</strong>
+}
+
+function MarkdownCode({ children, className }: Readonly<{ children?: React.ReactNode; className?: string }>) {
+  const highlighter = useHighlighter()
+  const match = /language-(\w+)/.exec(className ?? '')
+  const code = childrenToText(children)
+
+  if (match && highlighter) {
+    const html = highlighter.codeToHtml(code, { lang: match[1], theme: 'github-dark' })
+    return (
+      <div
+        dangerouslySetInnerHTML={{ __html: html }}
+        className="rounded-lg overflow-x-auto text-xs my-2 [&_pre]:p-4"
+      />
+    )
+  }
+
+  return (
+    <code className="bg-card-border px-1.5 py-0.5 rounded text-xs font-mono">
+      {children}
+    </code>
+  )
+}
+
+const MARKDOWN_COMPONENTS = {
+  p: MarkdownParagraph,
+  strong: MarkdownStrong,
+  code: MarkdownCode,
+}
+
+export function MessageList({ events }: Readonly<{ events: RunEvent[] }>) {
   if (events.length === 0) {
     return (
-      <p className="text-sm text-[var(--color-text-muted)] text-center py-8">
+      <p className="text-sm text-text-muted text-center py-8">
         Aguardando agente...
       </p>
     )
@@ -58,42 +107,13 @@ export function MessageList({ events }: { events: RunEvent[] }) {
 
   return (
     <div className="flex flex-col gap-3">
-      {events.map((event, i) => (
-        <div key={i} className="rounded-lg border border-[var(--color-card-border)] bg-[var(--color-card)] p-4">
-          <p className="text-xs font-medium text-[var(--color-text-muted)] mb-2 uppercase tracking-wide">
+      {events.map((event) => (
+        <div key={eventKey(event)} className="rounded-lg border border-card-border bg-card p-4">
+          <p className="text-xs font-medium text-text-muted mb-2 uppercase tracking-wide">
             {EVENT_LABELS[event.type] ?? event.type}
           </p>
-          <div className="text-sm text-[var(--color-text-primary)]">
-            <ReactMarkdown
-              components={{
-                p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
-                strong: ({ children }) => (
-                  <strong className="font-semibold text-[var(--color-text-primary)]">{children}</strong>
-                ),
-                code(props) {
-                  const { children, className } = props
-                  const match = /language-(\w+)/.exec(className ?? '')
-                  const code = String(children).trim()
-                  if (match && highlighter) {
-                    const html = highlighter.codeToHtml(code, {
-                      lang: match[1],
-                      theme: 'github-dark',
-                    })
-                    return (
-                      <div
-                        dangerouslySetInnerHTML={{ __html: html }}
-                        className="rounded-lg overflow-x-auto text-xs my-2 [&_pre]:p-4"
-                      />
-                    )
-                  }
-                  return (
-                    <code className="bg-[#1f1f1f] px-1.5 py-0.5 rounded text-xs font-mono">
-                      {children}
-                    </code>
-                  )
-                },
-              }}
-            >
+          <div className="text-sm text-text-primary">
+            <ReactMarkdown components={MARKDOWN_COMPONENTS}>
               {eventToMarkdown(event)}
             </ReactMarkdown>
           </div>

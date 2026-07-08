@@ -16,7 +16,7 @@ def client_autenticado():
 
 def test_post_runs_retorna_202_com_run_id(client_autenticado):
     with (
-        patch("api.routes.runs.create_client") as mock_supabase,
+        patch("api.routes.runs.get_service_client") as mock_supabase,
         patch("api.routes.runs.asyncio.create_task"),
     ):
         mock_table = MagicMock()
@@ -71,7 +71,7 @@ def test_stream_run_retorna_200(client_autenticado):
 
     asyncio.run(_close())
 
-    with patch("api.routes.runs.create_client") as mock_supabase:
+    with patch("api.routes.runs.get_service_client") as mock_supabase:
         mock_table = MagicMock()
         mock_table.select.return_value.eq.return_value.eq.return_value.execute.return_value = MagicMock(data=[{"id": "fake-run-id"}])
         mock_supabase.return_value.table.return_value = mock_table
@@ -83,7 +83,7 @@ def test_stream_run_retorna_200(client_autenticado):
 
 
 def test_stream_run_retorna_404_para_run_nao_pertencente(client_autenticado):
-    with patch("api.routes.runs.create_client") as mock_supabase:
+    with patch("api.routes.runs.get_service_client") as mock_supabase:
         mock_table = MagicMock()
         mock_table.select.return_value.eq.return_value.eq.return_value.execute.return_value = MagicMock(data=[])
         mock_supabase.return_value.table.return_value = mock_table

@@ -19,11 +19,11 @@ interface AgentGraphProps {
   events: RunEvent[]
 }
 
-export function AgentGraph({ events }: AgentGraphProps) {
+export function AgentGraph({ events }: Readonly<AgentGraphProps>) {
   const { nodes, edges } = useAgentGraph(events)
 
   return (
-    <div className="w-full h-full min-h-[300px] rounded-lg border border-[#1f1f1f] bg-[#0a0a0a] overflow-hidden">
+    <div className="w-full h-full min-h-[300px] rounded-lg border border-card-border bg-card overflow-hidden">
       <ReactFlow
         nodes={nodes}
         edges={edges}

@@ -9,11 +9,14 @@ class HitlStore:
     def create(self, run_id: str) -> None:
         self._events[run_id] = asyncio.Event()
 
-    async def wait_for_decision(self, run_id: str) -> str:
+    async def wait_for_decision(self, run_id: str, timeout: float | None = None) -> str:
         event = self._events.get(run_id)
         if event is None:
             return "approve"
-        await event.wait()
+        try:
+            await asyncio.wait_for(event.wait(), timeout=timeout)
+        except asyncio.TimeoutError:
+            return "timeout"
         event.clear()
         return self._decisions.pop(run_id, "approve")
 

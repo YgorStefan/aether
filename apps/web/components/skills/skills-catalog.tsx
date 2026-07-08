@@ -17,7 +17,7 @@ export function SkillsCatalog() {
   }
 
   if (skills.length === 0) {
-    return <p className="text-xs text-[var(--color-text-muted)]">Nenhuma skill disponível.</p>
+    return <p className="text-xs text-text-muted">Nenhuma skill disponível.</p>
   }
 
   return (
@@ -25,11 +25,11 @@ export function SkillsCatalog() {
       {skills.map(skill => (
         <div key={skill.name} className="flex items-start gap-2">
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-medium text-[var(--color-text-primary)]">{skill.name}</p>
-            <p className="text-xs text-[var(--color-text-muted)] mt-0.5 truncate">{skill.description}</p>
+            <p className="text-xs font-medium text-text-primary">{skill.name}</p>
+            <p className="text-xs text-text-muted mt-0.5 truncate">{skill.description}</p>
           </div>
           {skill.requires_approval && (
-            <span className="shrink-0 text-[10px] px-1.5 py-0.5 rounded bg-yellow-950 text-[var(--color-warning)]">
+            <span className="shrink-0 text-[10px] px-1.5 py-0.5 rounded bg-yellow-950 text-warning">
               aprovação
             </span>
           )}

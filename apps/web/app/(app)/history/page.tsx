@@ -16,9 +16,9 @@ export default async function HistoryPage() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
-      <h1 className="text-xl font-semibold text-[var(--color-text-primary)]">Histórico</h1>
+      <h1 className="text-xl font-semibold text-text-primary">Histórico</h1>
       {typedRuns.length === 0 ? (
-        <p className="text-sm text-[var(--color-text-muted)]">Nenhum run ainda.</p>
+        <p className="text-sm text-text-muted">Nenhum run ainda.</p>
       ) : (
         <div className="space-y-3">
           {typedRuns.map(run => (

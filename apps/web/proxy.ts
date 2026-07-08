@@ -1,7 +1,16 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-const APP_ROUTES = ['/dashboard', '/run', '/history']
+const APP_ROUTES = ['/dashboard', '/run', '/history', '/settings', '/admin']
+const AUTH_ROUTES = new Set(['/login', '/signup'])
+
+export function isAppRoute(path: string): boolean {
+  return APP_ROUTES.some((r) => path.startsWith(r))
+}
+
+export function isAuthRoute(path: string): boolean {
+  return AUTH_ROUTES.has(path)
+}
 
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request })
@@ -28,14 +37,12 @@ export async function proxy(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
 
   const path = request.nextUrl.pathname
-  const isAppRoute = APP_ROUTES.some((r) => path.startsWith(r))
-  const isAuthRoute = path === '/login' || path === '/signup'
 
-  if (!user && isAppRoute) {
+  if (!user && isAppRoute(path)) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
-  if (user && isAuthRoute) {
+  if (user && isAuthRoute(path)) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
@@ -43,5 +50,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon\\.ico|.*\\.(?:svg|png|jpg|gif|webp)$).*)'],
+  matcher: [String.raw`/((?!_next/static|_next/image|favicon\.ico|.*\.(?:svg|png|jpg|gif|webp)$).*)`],
 }

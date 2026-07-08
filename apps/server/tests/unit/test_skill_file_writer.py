@@ -15,7 +15,7 @@ async def test_file_writer_salva_e_retorna_url():
     mock_client = MagicMock()
     mock_client.storage = mock_storage
 
-    with patch("skills.file_writer.create_client", return_value=mock_client):
+    with patch("skills.file_writer.get_service_client", return_value=mock_client):
         skill = FileWriter()
         result = await skill.execute(
             FileWriterParams(filename="relatorio", content="# Relatório\nConteúdo aqui.", format="md")
@@ -34,7 +34,7 @@ async def test_file_writer_falha_de_upload():
     mock_client = MagicMock()
     mock_client.storage = mock_storage
 
-    with patch("skills.file_writer.create_client", return_value=mock_client):
+    with patch("skills.file_writer.get_service_client", return_value=mock_client):
         skill = FileWriter()
         result = await skill.execute(
             FileWriterParams(filename="teste", content="conteúdo", format="txt")

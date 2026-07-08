@@ -13,15 +13,15 @@ function formatDate(iso: string): string {
   })
 }
 
-export function RunCard({ run }: { run: Run }) {
+export function RunCard({ run }: Readonly<{ run: Run }>) {
   return (
     <Link
       href={`/run/${run.id}`}
-      className="flex items-center justify-between p-3 rounded-lg border border-[var(--color-card-border)] bg-[var(--color-card)] hover:border-[var(--color-primary)] transition-colors min-h-[44px]"
+      className="flex items-center justify-between p-3 rounded-lg border border-card-border bg-card hover:border-primary transition-colors min-h-[44px]"
     >
       <div className="flex-1 min-w-0 mr-3">
-        <p className="text-sm text-[var(--color-text-primary)] truncate">{truncate(run.objective)}</p>
-        <p className="text-xs text-[var(--color-text-muted)] mt-0.5">{formatDate(run.created_at)}</p>
+        <p className="text-sm text-text-primary truncate">{truncate(run.objective)}</p>
+        <p className="text-xs text-text-muted mt-0.5">{formatDate(run.created_at)}</p>
       </div>
       <StatusBadge status={run.status} />
     </Link>

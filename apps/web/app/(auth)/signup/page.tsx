@@ -2,11 +2,9 @@
 
 import { createClient } from '@/lib/supabase'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 
 export default function SignupPage() {
-  const router = useRouter()
   const supabase = createClient()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -14,7 +12,7 @@ export default function SignupPage() {
   const [success, setSuccess] = useState(false)
   const [loading, setLoading] = useState(false)
 
-  async function handleSignup(e: React.FormEvent) {
+  async function handleSignup(e: React.SyntheticEvent<HTMLFormElement>) {
     e.preventDefault()
     setLoading(true)
     setError(null)
@@ -34,10 +32,10 @@ export default function SignupPage() {
   if (success) {
     return (
       <div className="w-full max-w-sm space-y-4 text-center">
-        <p className="text-[var(--color-success)] text-sm">
+        <p className="text-success text-sm">
           Verifique seu email para confirmar a conta.
         </p>
-        <Link href="/login" className="text-xs text-[var(--color-primary)] hover:underline">
+        <Link href="/login" className="text-xs text-primary hover:underline">
           Ir para login
         </Link>
       </div>
@@ -47,50 +45,52 @@ export default function SignupPage() {
   return (
     <div className="w-full max-w-sm space-y-6">
       <div className="space-y-1 text-center">
-        <h1 className="text-2xl font-semibold text-[var(--color-text-primary)]">Criar conta</h1>
-        <p className="text-sm text-[var(--color-text-muted)]">Junte-se ao Aether</p>
+        <h1 className="text-2xl font-semibold text-text-primary">Criar conta</h1>
+        <p className="text-sm text-text-muted">Junte-se ao Aether</p>
       </div>
 
       <form onSubmit={handleSignup} className="space-y-4">
         <div className="space-y-2">
-          <label className="block text-sm text-[var(--color-text-secondary)]">Email</label>
+          <label htmlFor="email" className="block text-sm text-text-secondary">Email</label>
           <input
+            id="email"
             type="email"
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full rounded-lg border border-[var(--color-card-border)] bg-[var(--color-card)] px-3 py-2 text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--color-primary)]"
+            className="w-full rounded-lg border border-card-border bg-card px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-primary"
             placeholder="seu@email.com"
           />
         </div>
 
         <div className="space-y-2">
-          <label className="block text-sm text-[var(--color-text-secondary)]">Senha</label>
+          <label htmlFor="password" className="block text-sm text-text-secondary">Senha</label>
           <input
+            id="password"
             type="password"
             required
             minLength={6}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full rounded-lg border border-[var(--color-card-border)] bg-[var(--color-card)] px-3 py-2 text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--color-primary)]"
+            className="w-full rounded-lg border border-card-border bg-card px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-primary"
             placeholder="mínimo 6 caracteres"
           />
         </div>
 
-        {error && <p className="text-xs text-[var(--color-error)]">{error}</p>}
+        {error && <p className="text-xs text-error">{error}</p>}
 
         <button
           type="submit"
           disabled={loading}
-          className="w-full rounded-lg bg-[var(--color-primary)] px-4 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+          className="w-full rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
         >
           {loading ? 'Criando conta...' : 'Criar conta'}
         </button>
       </form>
 
-      <p className="text-center text-xs text-[var(--color-text-muted)]">
+      <p className="text-center text-xs text-text-muted">
         Já tem conta?{' '}
-        <Link href="/login" className="text-[var(--color-primary)] hover:underline">
+        <Link href="/login" className="text-primary hover:underline">
           Entrar
         </Link>
       </p>

@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { toast } from 'sonner'
-import { useRunStream, type RunEvent } from '@/hooks/use-run-stream'
+import { useRunStream, type RunEvent, type StreamStatus } from '@/hooks/use-run-stream'
 import { MessageList } from '@/components/chat/message-list'
 import { ChatErrorBoundary } from '@/components/chat/chat-error-boundary'
 import { StatusBadge } from '@/components/run/status-badge'
@@ -26,31 +26,56 @@ interface TokenState {
   langsmithEnabled: boolean
 }
 
-function deriveTokenState(events: RunEvent[]): TokenState {
-  let budgetLimit = 10000
-  let totalInputTokens = 0
-  let totalOutputTokens = 0
-  let costUsd = 0
-  let langsmithEnabled = false
+const USAGE_EVENT_TYPES = new Set<RunEvent['type']>([
+  'task_completed',
+  'run_completed',
+  'run_failed',
+  'budget_exceeded',
+])
 
-  for (const e of events) {
-    if (e.type === 'agent_started') {
-      if (typeof e.payload.budget_limit === 'number') budgetLimit = e.payload.budget_limit
-      if (typeof e.payload.langsmith_enabled === 'boolean') langsmithEnabled = e.payload.langsmith_enabled
-    }
-    if (
-      e.type === 'task_completed' ||
-      e.type === 'run_completed' ||
-      e.type === 'run_failed' ||
-      e.type === 'budget_exceeded'
-    ) {
-      if (typeof e.payload.total_input_tokens === 'number') totalInputTokens = e.payload.total_input_tokens
-      if (typeof e.payload.total_output_tokens === 'number') totalOutputTokens = e.payload.total_output_tokens
-      if (typeof e.payload.cost_usd === 'number') costUsd = e.payload.cost_usd
-    }
+function applyAgentStartedEvent(acc: TokenState, payload: Record<string, unknown>): void {
+  if (typeof payload.budget_limit === 'number') acc.budgetLimit = payload.budget_limit
+  if (typeof payload.langsmith_enabled === 'boolean') acc.langsmithEnabled = payload.langsmith_enabled
+}
+
+function applyUsageEvent(acc: TokenState, payload: Record<string, unknown>): void {
+  if (typeof payload.total_input_tokens === 'number') acc.totalInputTokens = payload.total_input_tokens
+  if (typeof payload.total_output_tokens === 'number') acc.totalOutputTokens = payload.total_output_tokens
+  if (typeof payload.cost_usd === 'number') acc.costUsd = payload.cost_usd
+}
+
+function deriveTokenState(events: RunEvent[]): TokenState {
+  const state: TokenState = {
+    budgetLimit: 10000,
+    totalInputTokens: 0,
+    totalOutputTokens: 0,
+    costUsd: 0,
+    langsmithEnabled: false,
   }
 
-  return { budgetLimit, totalInputTokens, totalOutputTokens, costUsd, langsmithEnabled }
+  for (const e of events) {
+    if (e.type === 'agent_started') applyAgentStartedEvent(state, e.payload)
+    if (USAGE_EVENT_TYPES.has(e.type)) applyUsageEvent(state, e.payload)
+  }
+
+  return state
+}
+
+function deriveCurrentStatus(
+  lastEvent: RunEvent | undefined,
+  status: StreamStatus,
+  initialStatus: string
+): string {
+  if (lastEvent?.type === 'run_completed') return 'completed'
+  if (lastEvent?.type === 'run_failed') return 'failed'
+  if (status === 'connected' || status === 'connecting') return 'running'
+  return initialStatus
+}
+
+function payloadText(value: unknown): string {
+  if (typeof value === 'string') return value
+  if (value == null) return ''
+  return JSON.stringify(value)
 }
 
 function buildAgentTokenTable(events: RunEvent[]): Array<{ agent: string; tokens: number }> {
@@ -67,17 +92,13 @@ function buildAgentTokenTable(events: RunEvent[]): Array<{ agent: string; tokens
   return Array.from(totals.entries()).map(([agent, tokens]) => ({ agent, tokens }))
 }
 
-export function RunView({ runId, objective, initialStatus, initialEvents = [] }: RunViewProps) {
+export function RunView({ runId, objective, initialStatus, initialEvents = [] }: Readonly<RunViewProps>) {
   const { events, status } = useRunStream(runId, { initialEvents, initialStatus })
   const [showGraph, setShowGraph] = useState(true)
 
-  const lastEvent = events[events.length - 1]
+  const lastEvent = events.at(-1)
 
-  const currentStatus =
-    lastEvent?.type === 'run_completed' ? 'completed' :
-    lastEvent?.type === 'run_failed' ? 'failed' :
-    status === 'connected' || status === 'connecting' ? 'running' :
-    initialStatus
+  const currentStatus = deriveCurrentStatus(lastEvent, status, initialStatus)
 
   const pendingHitlEvent = useMemo(() => {
     for (let i = events.length - 1; i >= 0; i--) {
@@ -95,9 +116,9 @@ export function RunView({ runId, objective, initialStatus, initialEvents = [] }:
   useEffect(() => {
     if (!lastEvent) return
     if (lastEvent.type === 'run_completed') toast.success('Run concluído!')
-    if (lastEvent.type === 'run_failed') toast.error(`Run falhou: ${String(lastEvent.payload.error ?? '')}`)
+    if (lastEvent.type === 'run_failed') toast.error(`Run falhou: ${payloadText(lastEvent.payload.error)}`)
     if (lastEvent.type === 'hitl_required') {
-      toast.warning(`Aprovação necessária: ${String(lastEvent.payload.skill ?? '')}`)
+      toast.warning(`Aprovação necessária: ${payloadText(lastEvent.payload.skill)}`)
     }
     if (lastEvent.type === 'budget_warning') {
       toast.warning('80% do budget consumido')
@@ -110,25 +131,25 @@ export function RunView({ runId, objective, initialStatus, initialEvents = [] }:
   return (
     <div className="flex flex-col h-full gap-4">
       {/* Top bar */}
-      <div className="flex items-center gap-3 flex-shrink-0 flex-wrap">
+      <div className="flex items-center gap-3 shrink-0 flex-wrap">
         <Link
           href="/dashboard"
-          className="text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-colors flex items-center gap-1 whitespace-nowrap"
+          className="text-xs text-text-muted hover:text-text-primary transition-colors flex items-center gap-1 whitespace-nowrap"
         >
           ← Voltar
         </Link>
-        <h2 className="flex-1 text-sm text-[var(--color-text-secondary)] line-clamp-1 min-w-0">
+        <h2 className="flex-1 text-sm text-text-secondary line-clamp-1 min-w-0">
           {objective}
         </h2>
         <StatusBadge status={currentStatus} />
         {totalTokens > 0 && (
-          <span className="text-xs text-[#94a3b8] whitespace-nowrap tabular-nums">
+          <span className="text-xs text-text-secondary whitespace-nowrap tabular-nums">
             {totalTokens.toLocaleString('pt-BR')} tokens · ${tokenState.costUsd.toFixed(4)}
           </span>
         )}
         <button
           onClick={() => setShowGraph(prev => !prev)}
-          className="md:hidden text-xs text-[#94a3b8] border border-[#1f1f1f] rounded px-2 py-1 hover:bg-[#1f1f1f] transition-colors"
+          className="md:hidden text-xs text-text-secondary border border-card-border rounded px-2 py-1 hover:bg-card-border transition-colors"
         >
           {showGraph ? 'Logs' : 'Grafo'}
         </button>
@@ -155,13 +176,13 @@ export function RunView({ runId, objective, initialStatus, initialEvents = [] }:
 
           {/* Tabela de tokens por agente */}
           {agentTokenTable.length > 0 && (
-            <div className="rounded-lg border border-[#1f1f1f] bg-[#0a0a0a] p-3">
-              <p className="text-xs text-[#64748b] mb-2 font-medium">Tokens por agente</p>
+            <div className="rounded-lg border border-card-border bg-card p-3">
+              <p className="text-xs text-text-muted mb-2 font-medium">Tokens por agente</p>
               <div className="space-y-1">
                 {agentTokenTable.map(({ agent, tokens }) => (
                   <div key={agent} className="flex justify-between text-xs">
-                    <span className="text-[#94a3b8]">{agent}</span>
-                    <span className="text-[#64748b] tabular-nums">{tokens.toLocaleString('pt-BR')}</span>
+                    <span className="text-text-secondary">{agent}</span>
+                    <span className="text-text-muted tabular-nums">{tokens.toLocaleString('pt-BR')}</span>
                   </div>
                 ))}
               </div>
@@ -175,7 +196,7 @@ export function RunView({ runId, objective, initialStatus, initialEvents = [] }:
       </div>
 
       {/* Bottom bar */}
-      <div className="flex items-center gap-4 flex-shrink-0 pt-1">
+      <div className="flex items-center gap-4 shrink-0 pt-1">
         <div className="flex-1 min-w-0">
           <BudgetProgressBar
             totalTokens={totalTokens}
@@ -188,7 +209,7 @@ export function RunView({ runId, objective, initialStatus, initialEvents = [] }:
             href="https://smith.langchain.com"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-xs text-[#64748b] hover:text-[#94a3b8] transition-colors whitespace-nowrap"
+            className="text-xs text-text-muted hover:text-text-secondary transition-colors whitespace-nowrap"
           >
             LangSmith ↗
           </a>

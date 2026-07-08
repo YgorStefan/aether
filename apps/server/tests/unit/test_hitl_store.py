@@ -65,3 +65,25 @@ def test_cleanup_remove_run():
     store.create("run-1")
     store.cleanup("run-1")
     assert "run-1" not in store._events
+
+
+@pytest.mark.asyncio
+async def test_wait_expira_com_timeout_retorna_timeout():
+    store = HitlStore()
+    store.create("run-1")
+    decision = await store.wait_for_decision("run-1", timeout=0.01)
+    assert decision == "timeout"
+
+
+@pytest.mark.asyncio
+async def test_wait_resolve_antes_do_timeout_retorna_decisao():
+    store = HitlStore()
+    store.create("run-1")
+
+    async def _resolve():
+        await asyncio.sleep(0.01)
+        store.resolve("run-1", "approve")
+
+    asyncio.create_task(_resolve())
+    decision = await store.wait_for_decision("run-1", timeout=5)
+    assert decision == "approve"

@@ -31,6 +31,55 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000'
 const MAX_BACKOFF_MS = 30_000
 const TERMINAL_STATUSES = new Set(['completed', 'failed', 'cancelled', 'COMPLETED', 'FAILED', 'CANCELLED'])
 
+function isTerminalEvent(event: RunEvent): boolean {
+  return event.type === 'run_completed' || event.type === 'run_failed'
+}
+
+function parseSseChunk(buffer: string): { events: RunEvent[]; remainder: string } {
+  const messages = buffer.split('\n\n')
+  const remainder = messages.pop() ?? ''
+  const events: RunEvent[] = []
+
+  for (const msg of messages) {
+    const dataLine = msg.split('\n').find(l => l.startsWith('data:'))
+    if (!dataLine) continue
+    try {
+      events.push(JSON.parse(dataLine.slice(5).trim()))
+    } catch {
+      // ignora JSON malformado
+    }
+  }
+
+  return { events, remainder }
+}
+
+// sse_starlette termina cada evento com "\r\n\r\n" (CRLF); normaliza para "\n\n" antes
+// de dividir, senão o split em parseSseChunk nunca encontra um separador e nenhum
+// evento chega a ser processado.
+async function readEventStream(
+  body: ReadableStream<Uint8Array>,
+  onEvent: (event: RunEvent) => void,
+  isCancelled: () => boolean
+): Promise<void> {
+  const reader = body.getReader()
+  const decoder = new TextDecoder()
+  let buffer = ''
+
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done || isCancelled()) return
+
+    buffer += decoder.decode(value, { stream: true }).replaceAll('\r\n', '\n')
+    const parsed = parseSseChunk(buffer)
+    buffer = parsed.remainder
+
+    for (const event of parsed.events) {
+      onEvent(event)
+      if (isTerminalEvent(event)) return
+    }
+  }
+}
+
 export function useRunStream(
   runId: string | null,
   options: { initialEvents?: RunEvent[]; initialStatus?: string } = {}
@@ -44,6 +93,7 @@ export function useRunStream(
   const abortRef = useRef<AbortController | null>(null)
   const retryRef = useRef(0)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const eventsRef = useRef<RunEvent[]>(initialEvents)
 
   useEffect(() => {
     if (!runId || isTerminal) return
@@ -77,32 +127,17 @@ export function useRunStream(
         setStatus('connected')
         retryRef.current = 0
 
-        const reader = res.body.getReader()
-        const decoder = new TextDecoder()
-        let buffer = ''
-
-        while (true) {
-          const { done, value } = await reader.read()
-          if (done || cancelled) break
-          buffer += decoder.decode(value, { stream: true })
-          const messages = buffer.split('\n\n')
-          buffer = messages.pop() ?? ''
-
-          for (const msg of messages) {
-            const dataLine = msg.split('\n').find(l => l.startsWith('data:'))
-            if (!dataLine) continue
-            try {
-              const event: RunEvent = JSON.parse(dataLine.slice(5).trim())
-              setEvents(prev => [...prev, event])
-              if (event.type === 'run_completed' || event.type === 'run_failed') {
-                setStatus('done')
-                return
-              }
-            } catch {
-              // ignora JSON malformado
-            }
-          }
-        }
+        let terminal = false
+        await readEventStream(
+          res.body,
+          (event) => {
+            eventsRef.current = [...eventsRef.current, event]
+            setEvents(eventsRef.current)
+            if (isTerminalEvent(event)) terminal = true
+          },
+          () => cancelled
+        )
+        if (terminal) setStatus('done')
       } catch (err) {
         if (cancelled || (err instanceof Error && err.name === 'AbortError')) return
         const delay = Math.min(1000 * 2 ** retryRef.current, MAX_BACKOFF_MS)

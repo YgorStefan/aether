@@ -41,6 +41,11 @@ class RunEventEmitter:
     def add_subscriber(self, run_id: str, callback: Callable[[RunEvent], Coroutine]) -> None:
         self._subscribers.setdefault(run_id, []).append(callback)
 
+    def is_active(self, run_id: str) -> bool:
+        """True se ainda existe uma fila em memória para este run (run em andamento
+        neste processo). False depois que close() é chamado ao final da execução."""
+        return run_id in self._queues
+
     async def emit(self, event: RunEvent) -> None:
         q = self._queues.get(event.run_id)
         if q:

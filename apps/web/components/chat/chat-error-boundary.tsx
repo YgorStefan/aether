@@ -19,10 +19,10 @@ export class ChatErrorBoundary extends Component<
     if (this.state.hasError) {
       return (
         <div className="flex flex-col items-center justify-center p-8 text-center">
-          <p className="text-sm text-[var(--color-text-secondary)] mb-4">Algo deu errado.</p>
+          <p className="text-sm text-text-secondary mb-4">Algo deu errado.</p>
           <button
             onClick={() => this.setState({ hasError: false })}
-            className="px-3 py-2 rounded-lg border border-[var(--color-card-border)] text-sm text-[var(--color-text-primary)] hover:border-[var(--color-primary)] transition-colors min-h-[44px]"
+            className="px-3 py-2 rounded-lg border border-card-border text-sm text-text-primary hover:border-primary transition-colors min-h-[44px]"
           >
             Tentar novamente
           </button>

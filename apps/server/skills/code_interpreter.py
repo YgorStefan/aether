@@ -1,3 +1,4 @@
+import asyncio
 from typing import Literal
 
 from pydantic import BaseModel
@@ -5,6 +6,14 @@ from e2b_code_interpreter import Sandbox
 
 from core.config import settings
 from skills.base import Skill, SkillResult
+
+
+def _run_in_sandbox(code: str) -> tuple[str, str]:
+    with Sandbox(api_key=settings.e2b_api_key) as sandbox:
+        execution = sandbox.run_code(code)
+        stdout = "\n".join(execution.logs.stdout)
+        stderr = "\n".join(execution.logs.stderr)
+    return stdout, stderr
 
 
 class CodeInterpreterParams(BaseModel):
@@ -24,10 +33,7 @@ class CodeInterpreter(Skill):
     async def execute(self, params: BaseModel) -> SkillResult:
         assert isinstance(params, CodeInterpreterParams)
 
-        with Sandbox(api_key=settings.e2b_api_key) as sandbox:
-            execution = sandbox.run_code(params.code)
-            stdout = "\n".join(execution.logs.stdout)
-            stderr = "\n".join(execution.logs.stderr)
+        stdout, stderr = await asyncio.to_thread(_run_in_sandbox, params.code)
 
         if stderr:
             return SkillResult(success=False, output=stdout, error=stderr)

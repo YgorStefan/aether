@@ -17,10 +17,13 @@ export type SkillMetadata = {
   requires_approval: boolean
 }
 
+// Status vem do banco em maiúsculas (CREATED, RUNNING, PAUSED, COMPLETED, FAILED,
+// CANCELLED), mas a UI otimista do dashboard usa valores transitórios em minúsculas
+// antes da run real chegar — StatusBadge normaliza com toLowerCase() em ambos os casos.
 export type Run = {
   id: string
   objective: string
-  status: 'created' | 'running' | 'paused' | 'completed' | 'failed' | 'cancelled'
+  status: string
   created_at: string
   total_tokens: number
   cost_usd: number
@@ -82,6 +85,57 @@ export async function updateSettings(provider: 'gemini', api_key: string): Promi
     body: JSON.stringify({ provider, api_key }),
   })
   if (!res.ok) throw new Error(await res.text())
+}
+
+export async function deleteAccount(): Promise<void> {
+  const headers = await authHeaders()
+  const res = await fetch(`${API_URL}/api/v1/account`, {
+    method: 'DELETE',
+    headers,
+  })
+  if (!res.ok) throw new Error(await res.text())
+}
+
+export type Me = { email: string; role: 'user' | 'admin' }
+
+export async function getMe(): Promise<Me> {
+  const headers = await authHeaders()
+  const res = await fetch(`${API_URL}/api/v1/me`, { headers })
+  if (!res.ok) throw new Error(await res.text())
+  return res.json()
+}
+
+export type AdminUser = {
+  user_id: string
+  email: string
+  role: 'user' | 'admin'
+  created_at: string
+  run_count: number
+}
+
+export async function getAdminUsers(): Promise<AdminUser[]> {
+  const headers = await authHeaders()
+  const res = await fetch(`${API_URL}/api/v1/admin/users`, { headers })
+  if (!res.ok) throw new Error(await res.text())
+  return res.json()
+}
+
+export type AdminRun = {
+  id: string
+  user_id: string
+  user_email: string
+  objective: string
+  status: string
+  total_tokens: number
+  cost_usd: number
+  created_at: string
+}
+
+export async function getAdminRuns(): Promise<AdminRun[]> {
+  const headers = await authHeaders()
+  const res = await fetch(`${API_URL}/api/v1/admin/runs`, { headers })
+  if (!res.ok) throw new Error(await res.text())
+  return res.json()
 }
 
 // Re-export RunEvent type alinhado com o hook

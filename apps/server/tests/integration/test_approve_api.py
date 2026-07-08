@@ -16,16 +16,14 @@ def client():
 
 def test_approve_resolve_hitl(client):
     with (
-        patch("api.routes.runs.create_client") as mock_supabase,
+        patch("api.routes.runs.get_service_client") as mock_supabase,
         patch("api.routes.runs.hitl_store") as mock_hitl,
-        patch("api.routes.runs.asyncio") as mock_asyncio,
     ):
         mock_table = MagicMock()
         mock_table.select.return_value.eq.return_value.eq.return_value.execute.return_value = MagicMock(
             data=[{"id": "run-abc"}]
         )
         mock_supabase.return_value.table.return_value = mock_table
-        mock_asyncio.create_task = lambda coro: coro.close() or MagicMock()
 
         response = client.post(
             "/api/v1/runs/run-abc/approve",
@@ -38,7 +36,7 @@ def test_approve_resolve_hitl(client):
 
 
 def test_approve_retorna_404_para_run_nao_pertencente(client):
-    with patch("api.routes.runs.create_client") as mock_supabase:
+    with patch("api.routes.runs.get_service_client") as mock_supabase:
         mock_table = MagicMock()
         mock_table.select.return_value.eq.return_value.eq.return_value.execute.return_value = MagicMock(
             data=[]

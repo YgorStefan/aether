@@ -3,10 +3,10 @@ interface CardProps {
   className?: string
 }
 
-export function Card({ children, className }: CardProps) {
+export function Card({ children, className }: Readonly<CardProps>) {
   return (
     <div
-      className={`rounded-[var(--radius-card)] border border-[var(--color-card-border)] bg-[var(--color-card)] backdrop-blur-sm ${className ?? ''}`}
+      className={`rounded-card border border-card-border bg-card backdrop-blur-sm ${className ?? ''}`}
     >
       {children}
     </div>

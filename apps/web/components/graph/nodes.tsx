@@ -51,12 +51,12 @@ export function SupervisorNode({ data }: NodeProps) {
         animate={animate}
         transition={transition}
         style={{ borderColor: color }}
-        className="px-4 py-3 rounded-lg border-2 bg-[#0a0a0a] min-w-[120px] text-center"
+        className="px-4 py-3 rounded-lg border-2 bg-card min-w-[120px] text-center"
       >
-        <p className="text-xs font-semibold text-[#a855f7]">SUPERVISOR</p>
-        <p className="text-xs text-[#e2e8f0] mt-1">{d.label}</p>
+        <p className="text-xs font-semibold text-primary">SUPERVISOR</p>
+        <p className="text-xs text-text-primary mt-1">{d.label}</p>
         {d.status === 'thinking' && (
-          <p className="text-[10px] text-[#94a3b8] mt-1">Planejando…</p>
+          <p className="text-[10px] text-text-secondary mt-1">Planejando…</p>
         )}
       </motion.div>
     </>
@@ -75,15 +75,15 @@ export function WorkerNode({ data }: NodeProps) {
         animate={animate}
         transition={transition}
         style={{ borderColor: color }}
-        className="px-4 py-3 rounded-lg border-2 bg-[#0a0a0a] min-w-[140px] text-center"
+        className="px-4 py-3 rounded-lg border-2 bg-card min-w-[140px] text-center"
       >
-        <p className="text-xs font-semibold text-[#3b82f6]">WORKER</p>
-        <p className="text-xs text-[#e2e8f0] mt-1">{d.label}</p>
+        <p className="text-xs font-semibold text-primary-blue">WORKER</p>
+        <p className="text-xs text-text-primary mt-1">{d.label}</p>
         {d.skill && d.status === 'thinking' && (
-          <p className="text-[10px] text-[#94a3b8] mt-1">→ {d.skill}</p>
+          <p className="text-[10px] text-text-secondary mt-1">→ {d.skill}</p>
         )}
         {d.status === 'hitl_pending' && (
-          <p className="text-[10px] text-[#fbbf24] mt-1">⏸ Aguardando aprovação</p>
+          <p className="text-[10px] text-warning mt-1">⏸ Aguardando aprovação</p>
         )}
       </motion.div>
       <Handle type="source" position={Position.Right} />
@@ -103,10 +103,10 @@ export function FinalizeNode({ data }: NodeProps) {
         animate={animate}
         transition={transition}
         style={{ borderColor: color }}
-        className="px-4 py-3 rounded-lg border-2 bg-[#0a0a0a] min-w-[120px] text-center"
+        className="px-4 py-3 rounded-lg border-2 bg-card min-w-[120px] text-center"
       >
-        <p className="text-xs font-semibold text-[#22c55e]">FINALIZAR</p>
-        <p className="text-xs text-[#e2e8f0] mt-1">{d.label}</p>
+        <p className="text-xs font-semibold text-success">FINALIZAR</p>
+        <p className="text-xs text-text-primary mt-1">{d.label}</p>
       </motion.div>
     </>
   )

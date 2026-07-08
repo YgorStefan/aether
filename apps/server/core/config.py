@@ -23,6 +23,9 @@ class Settings(BaseSettings):
 
     memory_similarity_threshold: float = 0.7  # limiar para busca cosine no pgvector
     mcp_api_key: str = ""                      # se vazio, MCP Server não é montado
+    hitl_timeout_seconds: int = 600            # tempo máximo esperando aprovação humana
+    settings_encryption_key: str = ""          # chave Fernet para criptografar api_key do usuário
+    use_mock_llm: bool = False                 # ativa AutoMockLLMAdapter (nunca usar em produção)
 
 
 settings = Settings()

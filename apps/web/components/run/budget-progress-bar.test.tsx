@@ -14,7 +14,7 @@ test('barra roxa abaixo de 80%', () => {
     <BudgetProgressBar totalTokens={5000} budgetLimit={10000} costUsd={0.001} />
   )
   const bar = container.querySelector('[data-testid="budget-bar"]')
-  expect(bar?.className).toContain('bg-[#a855f7]')
+  expect(bar?.className).toContain('bg-primary')
 })
 
 test('barra amarela entre 80% e 100%', () => {
@@ -22,7 +22,7 @@ test('barra amarela entre 80% e 100%', () => {
     <BudgetProgressBar totalTokens={8500} budgetLimit={10000} costUsd={0.002} />
   )
   const bar = container.querySelector('[data-testid="budget-bar"]')
-  expect(bar?.className).toContain('bg-[#fbbf24]')
+  expect(bar?.className).toContain('bg-warning')
 })
 
 test('barra vermelha em 100%', () => {
@@ -30,9 +30,11 @@ test('barra vermelha em 100%', () => {
     <BudgetProgressBar totalTokens={10000} budgetLimit={10000} costUsd={0.003} />
   )
   const bar = container.querySelector('[data-testid="budget-bar"]')
-  expect(bar?.className).toContain('bg-[#ef4444]')
+  expect(bar?.className).toContain('bg-error')
 })
 
 test('budget zero não crasha', () => {
-  render(<BudgetProgressBar totalTokens={0} budgetLimit={0} costUsd={0} />)
+  const { container } = render(<BudgetProgressBar totalTokens={0} budgetLimit={0} costUsd={0} />)
+  const bar = container.querySelector('[data-testid="budget-bar"]')
+  expect(bar?.className).toContain('bg-primary')
 })

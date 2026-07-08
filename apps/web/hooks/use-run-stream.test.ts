@@ -67,4 +67,37 @@ describe('useRunStream', () => {
 
     vi.restoreAllMocks()
   })
+
+  it('parseia eventos SSE separados por CRLF (formato real do sse_starlette)', async () => {
+    const encoder = new TextEncoder()
+    // sse_starlette termina cada evento com "\r\n\r\n", não "\n\n".
+    const sseChunk = encoder.encode(
+      'event: agent_started\r\ndata: {"run_id":"r1","type":"agent_started","payload":{}}\r\n\r\n' +
+      'event: run_completed\r\ndata: {"run_id":"r1","type":"run_completed","payload":{}}\r\n\r\n'
+    )
+
+    let callCount = 0
+    const mockReader = {
+      read: vi.fn().mockImplementation(() => {
+        callCount++
+        if (callCount === 1) return Promise.resolve({ done: false, value: sseChunk })
+        return Promise.resolve({ done: true, value: undefined })
+      }),
+    }
+
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      body: { getReader: () => mockReader },
+    }))
+
+    const { result } = renderHook(() => useRunStream('run-1'))
+
+    await waitFor(() => {
+      expect(result.current.events).toHaveLength(2)
+      expect(result.current.events[1].type).toBe('run_completed')
+      expect(result.current.status).toBe('done')
+    })
+
+    vi.restoreAllMocks()
+  })
 })

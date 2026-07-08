@@ -15,7 +15,7 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
-      <h1 className="text-xl font-semibold text-[var(--color-text-primary)]">Dashboard</h1>
+      <h1 className="text-xl font-semibold text-text-primary">Dashboard</h1>
       <DashboardClient initialRuns={(runs ?? []) as Run[]} />
     </div>
   )

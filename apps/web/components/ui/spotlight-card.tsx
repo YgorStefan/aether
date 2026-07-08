@@ -7,7 +7,7 @@ interface SpotlightCardProps {
   className?: string
 }
 
-export function SpotlightCard({ children, className }: SpotlightCardProps) {
+export function SpotlightCard({ children, className }: Readonly<SpotlightCardProps>) {
   const ref = useRef<HTMLDivElement>(null)
   const [pos, setPos] = useState({ x: 0, y: 0 })
   const [hovered, setHovered] = useState(false)
@@ -21,7 +21,7 @@ export function SpotlightCard({ children, className }: SpotlightCardProps) {
   return (
     <div
       ref={ref}
-      className={`relative overflow-hidden rounded-[var(--radius-card)] border border-[var(--color-card-border)] bg-[var(--color-card)] backdrop-blur-sm ${className ?? ''}`}
+      className={`relative overflow-hidden rounded-card border border-card-border bg-card backdrop-blur-sm ${className ?? ''}`}
       onMouseMove={handleMouseMove}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { deleteAccount, getSettings, updateSettings } from '@/lib/api'
 import { createClient } from '@/lib/supabase'
+import { BackButton } from '@/components/ui/back-button'
 
 export default function SettingsPage() {
   const router = useRouter()
@@ -62,7 +63,10 @@ export default function SettingsPage() {
   return (
     <div className="max-w-lg mx-auto space-y-6">
       <div>
-        <h1 className="text-xl font-semibold text-text-primary">Configurações</h1>
+        <div className="flex items-center gap-3">
+          <BackButton />
+          <h1 className="text-xl font-semibold text-text-primary">Configurações</h1>
+        </div>
         <p className="text-sm text-text-muted mt-1">
           Configure sua chave de API para usar o Aether.
         </p>

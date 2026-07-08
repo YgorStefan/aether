@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase-server'
 import { RunCard } from '@/components/run/run-card'
+import { BackButton } from '@/components/ui/back-button'
 import type { Run } from '@/lib/api'
 
 export default async function HistoryPage() {
@@ -16,7 +17,10 @@ export default async function HistoryPage() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
-      <h1 className="text-xl font-semibold text-text-primary">Histórico</h1>
+      <div className="flex items-center gap-3">
+        <BackButton />
+        <h1 className="text-xl font-semibold text-text-primary">Histórico</h1>
+      </div>
       {typedRuns.length === 0 ? (
         <p className="text-sm text-text-muted">Nenhum run ainda.</p>
       ) : (

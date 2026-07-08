@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase-server'
+import { BackButton } from '@/components/ui/back-button'
 import { AdminView } from './admin-view'
 
 export default async function AdminPage() {
@@ -18,7 +19,10 @@ export default async function AdminPage() {
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
-      <h1 className="text-xl font-semibold text-text-primary">Painel Admin</h1>
+      <div className="flex items-center gap-3">
+        <BackButton />
+        <h1 className="text-xl font-semibold text-text-primary">Painel Admin</h1>
+      </div>
       <AdminView />
     </div>
   )

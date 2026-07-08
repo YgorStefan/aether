@@ -15,9 +15,13 @@ export function LogoutButton() {
   return (
     <button
       onClick={handleLogout}
-      className="text-xs text-text-muted hover:text-text-primary transition-colors px-2 py-1 rounded hover:bg-card min-h-[44px]"
+      title="Sair"
+      className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-xs font-medium text-text-muted transition-colors hover:bg-error/10 hover:text-error"
     >
-      Sair
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" />
+      </svg>
+      <span className="hidden lg:inline">Sair</span>
     </button>
   )
 }

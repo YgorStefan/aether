@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import Link from 'next/link'
 import { toast } from 'sonner'
 import { useRunStream, type RunEvent, type StreamStatus } from '@/hooks/use-run-stream'
 import { MessageList } from '@/components/chat/message-list'
@@ -10,6 +9,7 @@ import { StatusBadge } from '@/components/run/status-badge'
 import { BudgetProgressBar } from '@/components/run/budget-progress-bar'
 import { AgentGraph } from '@/components/graph/agent-graph'
 import { HitlPanel } from '@/components/hitl/hitl-panel'
+import { BackButton } from '@/components/ui/back-button'
 
 interface RunViewProps {
   runId: string
@@ -132,12 +132,7 @@ export function RunView({ runId, objective, initialStatus, initialEvents = [] }:
     <div className="flex flex-col h-full gap-4">
       {/* Top bar */}
       <div className="flex items-center gap-3 shrink-0 flex-wrap">
-        <Link
-          href="/dashboard"
-          className="text-xs text-text-muted hover:text-text-primary transition-colors flex items-center gap-1 whitespace-nowrap"
-        >
-          ← Voltar
-        </Link>
+        <BackButton />
         <h2 className="flex-1 text-sm text-text-secondary line-clamp-1 min-w-0">
           {objective}
         </h2>

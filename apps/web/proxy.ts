@@ -49,6 +49,9 @@ export async function proxy(request: NextRequest) {
   return response
 }
 
+// O Next.js analisa este matcher estaticamente, sem executar o arquivo, e não reconhece
+// TaggedTemplateExpression (String.raw quebra o build com "Unsupported node type") — por
+// isso precisa ser um literal de string simples, com as barras escapadas manualmente.
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon\\.ico|.*\\.(?:svg|png|jpg|gif|webp)$).*)'],
+  matcher: ['/((?!_next/static|_next/image|favicon\\.ico|.*\\.(?:svg|png|jpg|gif|webp)$).*)'], // NOSONAR
 }

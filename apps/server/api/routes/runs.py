@@ -1,7 +1,7 @@
 import asyncio
 import json
 import uuid
-from typing import Literal
+from typing import Annotated, Literal
 
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -31,6 +31,9 @@ router = APIRouter(tags=["runs"])
 _background_tasks: set[asyncio.Task] = set()
 
 _RUN_NOT_FOUND = "Run não encontrada"
+_NOT_FOUND_RESPONSES = {404: {"description": _RUN_NOT_FOUND}}
+
+CurrentUser = Annotated[dict, Depends(get_current_user)]
 
 
 class RunRequest(BaseModel):
@@ -177,12 +180,19 @@ async def _run_graph_in_background(run_id: str, user_id: str, initial_state: Age
         hitl_store.cleanup(run_id)
 
 
-@router.post("/runs", status_code=202)
+@router.post(
+    "/runs",
+    status_code=202,
+    responses={
+        400: {"description": "Prompt injection detectado"},
+        500: {"description": "Erro ao criar run"},
+    },
+)
 @limiter.limit("5/minute")
 async def create_run(
     request: Request,
     body: RunRequest,
-    user: dict = Depends(get_current_user),
+    user: CurrentUser,
 ) -> dict:
     _validate_objective(body.objective)
 
@@ -202,10 +212,10 @@ async def create_run(
     return {"run_id": run_id}
 
 
-@router.get("/runs/{run_id}/stream")
+@router.get("/runs/{run_id}/stream", responses=_NOT_FOUND_RESPONSES)
 async def stream_run(
     run_id: str,
-    user: dict = Depends(get_current_user),
+    user: CurrentUser,
 ) -> EventSourceResponse:
     supabase = get_service_client()
     result = await asyncio.to_thread(
@@ -236,13 +246,13 @@ async def stream_run(
     return EventSourceResponse(event_generator())
 
 
-@router.post("/runs/{run_id}/approve", status_code=200)
+@router.post("/runs/{run_id}/approve", status_code=200, responses=_NOT_FOUND_RESPONSES)
 @limiter.limit("20/minute")
 async def approve_run(
     request: Request,
     run_id: str,
     body: ApproveRequest,
-    user: dict = Depends(get_current_user),
+    user: CurrentUser,
 ) -> dict:
     supabase = get_service_client()
     result = await asyncio.to_thread(
@@ -261,10 +271,10 @@ async def approve_run(
     return {"ok": True}
 
 
-@router.get("/runs/{run_id}/events")
+@router.get("/runs/{run_id}/events", responses=_NOT_FOUND_RESPONSES)
 async def get_run_events(
     run_id: str,
-    user: dict = Depends(get_current_user),
+    user: CurrentUser,
 ) -> list[dict]:
     supabase = get_service_client()
     result = await asyncio.to_thread(
